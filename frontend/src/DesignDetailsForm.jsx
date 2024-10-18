@@ -2,7 +2,6 @@ import { useState } from "react";
 import axios from "axios";
 
 function DesignDetailsForm() {
-
   const [formData, setFormData] = useState({
     designNumber: "",
     exposedStatus: "New",
@@ -18,7 +17,7 @@ function DesignDetailsForm() {
     drop: "No Drop",
     specialInstructions: "",
     location: "Not Assigned",
-    currentStatus: "Awaiting Exposing"
+    currentStatus: "Awaiting Exposing",
   });
 
   const handleChange = (e) => {
@@ -28,7 +27,7 @@ function DesignDetailsForm() {
   const handleSubmit = async (event) => {
     // Preventing refresh when submitting
     event.preventDefault();
-    
+
     // Check if numberOfExposedScreens is equal or less than the numberOfColors
     if (formData.numberOfExposedScreens > formData.numberOfColors) {
       alert("Number of screens can't be greater than number of colors !");
@@ -51,7 +50,7 @@ function DesignDetailsForm() {
         drop: formData.drop,
         specialInstructions: formData.specialInstructions,
         location: formData.location,
-        currentStatus: formData.currentStatus
+        currentStatus: formData.currentStatus,
       });
 
       // Displaying a message for a successful posting
@@ -62,32 +61,34 @@ function DesignDetailsForm() {
       // Clearing the form after submitting data
       setFormData({
         designNumber: "",
-        exposedStatus: "",
-        orderType: "",
+        exposedStatus: "New",
+        orderType: "Direct",
         numberOfColors: "",
         numberOfExposedScreens: "",
         receivedDate: "",
-        printRoute: "",
         designName: "",
         customer: "",
+        printRoute: "Reactive",
         screenWidth: "",
         dpi: "",
-        drop: "",
+        drop: "No Drop",
         specialInstructions: "",
-        location: "",
-        currentStatus: ""
+        location: "Not Assigned",
+        currentStatus: "Awaiting Exposing",
       });
-
     } catch (error) {
       console.error("Error adding design:", error);
       alert("There was an issue adding the user. Please try again.");
     }
-  }
+  };
 
   return (
     <>
       <div className="flex items-center justify-start min-h-screen bg-gray-800">
-        <form onSubmit={handleSubmit} className="lg:w-1/2  md:w-full sm:w-full m-2 p-2 space-y-6">
+        <form
+          onSubmit={handleSubmit}
+          className="lg:w-1/2  md:w-full sm:w-full m-2 p-2 space-y-6"
+        >
           <div className="grid grid-cols-3 gap-4">
             <div>
               <label
