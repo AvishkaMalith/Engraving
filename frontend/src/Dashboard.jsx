@@ -1,7 +1,8 @@
 import { Fragment, useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Dialog, Transition } from "@headlessui/react";
 import {
-  ChartBarSquareIcon,
+  UserIcon,
   Cog6ToothIcon,
   FolderIcon,
   GlobeAltIcon,
@@ -9,10 +10,13 @@ import {
   SignalIcon,
   XMarkIcon,
   PlusIcon,
-  ArrowRightCircleIcon,
 } from "@heroicons/react/24/outline";
 
-import { Bars3Icon, MagnifyingGlassIcon } from "@heroicons/react/20/solid";
+import { 
+  Bars3Icon, 
+  MagnifyingGlassIcon, 
+  ArrowRightCircleIcon 
+} from "@heroicons/react/20/solid";
 import axios from "axios";
 
 const navigation = [
@@ -20,7 +24,7 @@ const navigation = [
   { name: "Screens", href: "#", icon: ServerIcon, current: false },
   { name: "Screen Locations", href: "#", icon: SignalIcon, current: false },
   { name: "Storage", href: "#", icon: GlobeAltIcon, current: false },
-  { name: "Employees", href: "#", icon: ChartBarSquareIcon, current: false },
+  { name: "Employees", href: "#", icon: UserIcon, current: false },
   { name: "Settings", href: "#", icon: Cog6ToothIcon, current: false },
 ];
 
@@ -55,16 +59,24 @@ function classNames(...classes) {
   return classes.filter(Boolean).join(" ");
 }
 
-export default function Example() {
+function Dashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [designs, setDesigns] = useState([]);
+  const [numberOfNewScreens, setNumberOfNewScreens] = useState(0);
+  const [numberOfReExposeScreens, setNumberOfReExposeScreens] = useState(0);
+
+  const navigate = useNavigate();
+
+  const redirectToDesignForm = () => {
+    navigate("/DesignDetailsForm");
+  }
 
   const stats = [
     { name: "New Designs", value: designs.length },
-    { name: "Number Of screens", value: "3.65", unit: "mins" },
-    { name: "Number of servers", value: "3" },
-    { name: "Success rate", value: "98.5%" },
-  ];  
+    { name: "New Screens", value: numberOfNewScreens },
+    { name: "Re-Expose Screens", value: numberOfReExposeScreens },
+    { name: "Completed", value: "98 %" },
+  ];
 
   useEffect(() => {
     const getDesigns = async () => {
@@ -73,6 +85,22 @@ export default function Example() {
           "http://192.168.8.197:4000/api/designs"
         );
         setDesigns(designResults.data);
+
+        // Calculate the sum of new Screens
+        const totalNewScreens = designResults.data.reduce((acc, design) => {
+          return acc + (design.numberOfExposedScreens || 0);
+        }, 0);
+
+        const totalReExposeScreens = designResults.data.reduce((acc, design) => {
+          // Check if exposedStatus is "Re-Expose"
+          if (design.exposedStatus === "Re-Expose") {
+            return acc + (design.numberOfExposedScreens || 0);
+          }
+          return acc;
+        }, 0);
+
+        setNumberOfNewScreens(totalNewScreens);
+        setNumberOfReExposeScreens(totalReExposeScreens);
       } catch (error) {
         console.error("Error fetching data", error);
       }
@@ -240,7 +268,7 @@ export default function Example() {
                             item.current
                               ? "bg-gray-500 text-white"
                               : "text-gray-400 hover:text-white hover:bg-gray-700",
-                            "group flex gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold"
+                            "group flex gap-x-3 rounded-md p-2 text-sm leading-6 font-mono"
                           )}
                         >
                           <item.icon
@@ -321,7 +349,7 @@ export default function Example() {
                   />
                   <input
                     id="search-field"
-                    className="block h-full w-full bg-gray-800 bg-transparent border-0 border-bg-gray-800 py-0 pl-8 pr-0 text-white focus:ring-0 focus:outline-none sm:text-sm"
+                    className="block h-full w-full bg-gray-800 bg-transparent border-0 border-bg-gray-800 py-0 pl-8 pr-0 text-white focus:ring-0 focus:outline-none sm:text-md"
                     placeholder="Search..."
                     type="search"
                     name="search"
@@ -330,10 +358,18 @@ export default function Example() {
               </form>
               <button
                 type="button"
+                onClick={redirectToDesignForm}
                 className="inline-flex items-center justify-center mt-4 h-1/2 gap-x-1.5 rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
               >
                 <PlusIcon className="-ml-0.5 h-5 w-5" aria-hidden="true" />
                 Add New Design
+              </button>
+              <button
+                type="button"
+                className="inline-flex items-center justify-center mt-4 h-1/2 gap-x-1.5 rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+              >
+                <PlusIcon className="-ml-0.5 h-5 w-5" aria-hidden="true" />
+                Add Re-Expose
               </button>
             </div>
           </div>
@@ -399,7 +435,7 @@ export default function Example() {
                       "border-t border-white/5 py-6 px-4 sm:px-6 lg:px-8"
                     )}
                   >
-                    <p className="text-sm font-medium leading-6 text-gray-400">
+                    <p className="text-md font-mono leading-6 text-gray-400">
                       {stat.name}
                     </p>
                     <p className="mt-2 flex items-baseline gap-x-2">
@@ -407,7 +443,7 @@ export default function Example() {
                         {stat.value}
                       </span>
                       {stat.unit ? (
-                        <span className="text-sm text-gray-400">
+                        <span className="text-md text-gray-400">
                           {stat.unit}
                         </span>
                       ) : null}
@@ -418,8 +454,8 @@ export default function Example() {
             </header>
 
             {/* Activity list */}
-            <div className="border-y border-white/100 bg-gray-900 pt-6">
-              <h2 className="px-4 text-md font-semibold leading-7 text-white sm:px-6 lg:px-8">
+            <div className="border-y border-white/10 bg-gray-900 pt-6 min-h-screen">
+              <h2 className="px-4 text-md font-mono leading-7 text-white sm:px-6 lg:px-8">
                 Latest Designs
               </h2>
               <table className="mt-6 w-full whitespace-nowrap text-left">
@@ -434,37 +470,43 @@ export default function Example() {
                   <tr>
                     <th
                       scope="col"
-                      className="py-2 pl-4 pr-8 font-semibold sm:pl-6 lg:pl-8"
+                      className="py-2 pl-4 pr-8 font-mono sm:pl-6 lg:pl-8"
                     >
                       Design Number
                     </th>
                     <th
                       scope="col"
-                      className="hidden py-2 pl-0 pr-8 font-semibold sm:table-cell"
+                      className="hidden py-2 pl-0 pr-8 font-mono sm:table-cell"
+                    >
+                      Status
+                    </th>
+                    <th
+                      scope="col"
+                      className="md:hidden py-2 pl-0 pr-8 font-mono sm:table-cell lg:table-cell"
                     >
                       Colors #
                     </th>
                     <th
                       scope="col"
-                      className="py-2 pl-0 pr-4 text-right font-semibold sm:pr-8 sm:text-left lg:pr-20"
+                      className="py-2 pl-0 pr-4 text-right font-mono sm:pr-8 sm:text-left lg:pr-20"
                     >
                       Screens #
                     </th>
                     <th
                       scope="col"
-                      className="hidden py-2 pl-0 pr-8 font-semibold md:table-cell lg:pr-20"
+                      className="hidden py-2 pl-0 pr-8 font-mono md:table-cell lg:pr-20"
                     >
                       Design Name
                     </th>
                     <th
                       scope="col"
-                      className="hidden py-2 pl-0 pr-8 font-semibold md:table-cell lg:pr-20"
+                      className="hidden py-2 pl-0 pr-8 font-mono md:table-cell lg:pr-20"
                     >
                       Customer
                     </th>
                     <th
                       scope="col"
-                      className="hidden py-2 pl-0 pr-4 text-right font-semibold sm:table-cell sm:pr-6 lg:pr-8"
+                      className="hidden py-2 pl-0 pr-4 text-right font-mono sm:table-cell sm:pr-6 lg:pr-8"
                     ></th>
                   </tr>
                 </thead>
@@ -485,6 +527,19 @@ export default function Example() {
                           </div>
                         </td>
                         <td className="hidden py-4 pl-0 pr-4 sm:table-cell sm:pr-8">
+                          <div className="flex gap-x-3">
+                            {design.exposedStatus === "New" ? (
+                              <span className="inline-flex items-center rounded-md bg-green-500/10 px-2 py-1 text-sm font-medium text-green-400 ring-1 ring-inset ring-green-500/20">
+                                {design.exposedStatus}
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center rounded-md bg-red-500/10 px-2 py-1 text-sm font-medium text-red-400 ring-1 ring-inset ring-red-500/20">
+                                {design.exposedStatus}
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="py-4 pl-0 pr-4 sm:table-cell md:hidden lg:table-cell sm:pr-8">
                           <div className="flex gap-x-3">
                             <div className="font-mono text-lg leading-6 text-white">
                               {design.numberOfColors}
@@ -515,13 +570,10 @@ export default function Example() {
                             </div>
                           </div>
                         </td>
-                        <td className="hidden py-4 pl-0 pr-8 text-lg leading-6 text-white md:hidden lg:pr-12">
-                          {design.currentStatus}
-                        </td>
-                        <td className="hidden py-4 pl-0 pr-8 text-lg leading-6 text-white md:table-cell lg:pr-12">
+                        <td className="hidden py-4 pl-0 pr-8 text-lg leading-6 font-mono text-white md:table-cell lg:pr-10">
                           {design.designName}
                         </td>
-                        <td className="hidden py-4 pl-0 pr-8 text-lg leading-6 text-white md:table-cell lg:pr-12">
+                        <td className="hidden py-4 pl-0 pr-8 text-lg leading-6 font-mono text-white md:table-cell lg:pr-10">
                           {design.customer}
                         </td>
                         <td className="hidden py-4 pl-0 pr-8 text-sm leading-6 text-white md:table-cell md:pr-12 sm:pr-20">
@@ -549,3 +601,5 @@ export default function Example() {
     </>
   );
 }
+
+export default Dashboard;

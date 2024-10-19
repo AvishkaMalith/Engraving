@@ -35,7 +35,7 @@ function DesignDetailsForm() {
     }
 
     try {
-      const newUDesign = await axios.post("http://localhost:4000/api/designs", {
+      const newUDesign = await axios.post("http://192.168.8.197:4000/api/designs", {
         designNumber: formData.designNumber,
         exposedStatus: formData.exposedStatus,
         orderType: formData.orderType,
@@ -84,12 +84,12 @@ function DesignDetailsForm() {
 
   return (
     <>
-      <div className="flex items-center justify-start min-h-screen bg-gray-800">
+      <div className="flex items-center justify-start min-h-screen bg-gray-900">
         <form
           onSubmit={handleSubmit}
-          className="lg:w-1/2  md:w-full sm:w-full m-2 p-2 space-y-6"
+          className="w-full lg:w-1/2  md:w-1/2 m-2 p-2 space-y-6"
         >
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid lg:grid-cols-3 gap-4">
             <div>
               <label
                 htmlFor="design-number"
@@ -105,7 +105,7 @@ function DesignDetailsForm() {
                   type="number"
                   name="designNumber"
                   id="design-number"
-                  className="block w-full bg-gray-600 rounded-md border-0 p-2 text-white shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 lg:text-md sm:text-sm sm:leading-6"
+                  className="block w-full bg-gray-600 rounded-md border-0 p-2 text-white shadow-sm ring-1 ring-inset ring-gray-700 focus:outline-none focus:ring-inset focus:ring-indigo-600 lg:text-md sm:text-sm sm:leading-6"
                   min={0}
                 />
               </div>
@@ -123,7 +123,7 @@ function DesignDetailsForm() {
                 onChange={handleChange}
                 id="exposedStatus"
                 name="exposedStatus"
-                className="mt-2 block w-full bg-gray-600 rounded-md border-0 p-2.5 text-white ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-indigo-600 sm:text-sm sm:leading-6"
+                className="mt-2 block w-full bg-gray-600 rounded-md border-0 p-2.5 text-white ring-1 ring-inset ring-gray-700 focus:outline-none focus:ring-indigo-600 sm:text-sm sm:leading-6"
               >
                 <option>New</option>
                 <option>Re-Expose</option>
@@ -142,7 +142,7 @@ function DesignDetailsForm() {
                 onChange={handleChange}
                 id="orderType"
                 name="orderType"
-                className="mt-2 block w-full bg-gray-600 rounded-md border-0 p-2.5 text-white ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-indigo-600 sm:text-sm sm:leading-6"
+                className="mt-2 block w-full bg-gray-600 rounded-md border-0 p-2.5 text-white ring-1 ring-inset ring-gray-700 focus:outline-none focus:ring-indigo-600 sm:text-sm sm:leading-6"
               >
                 <option>Direct</option>
                 <option>Commission</option>
@@ -164,7 +164,7 @@ function DesignDetailsForm() {
                   type="number"
                   name="numberOfColors"
                   id="numberOfColors"
-                  className="block w-full bg-gray-600 rounded-md border-0 p-2 text-white shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+                  className="block w-full bg-gray-600 rounded-md border-0 p-2 text-white shadow-sm ring-1 ring-inset ring-gray-700 focus:outline-none focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
                   min={0}
                   max={15}
                 />
@@ -185,7 +185,7 @@ function DesignDetailsForm() {
                   type="number"
                   name="numberOfExposedScreens"
                   id="numberOfExposedScreens"
-                  className="block w-full bg-gray-600 rounded-md border-0 p-2 text-white shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+                  className="block w-full bg-gray-600 rounded-md border-0 p-2 text-white shadow-sm ring-1 ring-inset ring-gray-700 focus:outline-none focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
                   min={0}
                   max={15}
                 />
@@ -206,13 +206,13 @@ function DesignDetailsForm() {
                   type="date"
                   name="receivedDate"
                   id="receivedDate"
-                  className="block w-full bg-gray-600 rounded-md border-0 p-2 text-white shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+                  className="block w-full bg-gray-600 rounded-md border-0 p-2 text-white shadow-sm ring-1 ring-inset ring-gray-700 focus:outline-none focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
                 />
               </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid lg:grid-cols-3 gap-4">
             <div>
               <label
                 htmlFor="design-name"
@@ -228,7 +228,7 @@ function DesignDetailsForm() {
                   type="text"
                   name="designName"
                   id="designName"
-                  className="block w-full bg-gray-600 rounded-md border-0 p-2 text-white shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+                  className="block w-full bg-gray-600 rounded-md border-0 p-2 text-white shadow-sm ring-1 ring-inset ring-gray-700 focus:outline-none focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
                 />
               </div>
             </div>
@@ -247,7 +247,7 @@ function DesignDetailsForm() {
                   type="text"
                   name="customer"
                   id="customer"
-                  className="block w-full bg-gray-600 rounded-md border-0 p-2 text-white shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+                  className="block w-full bg-gray-600 rounded-md border-0 p-2 text-white shadow-sm ring-1 ring-inset ring-gray-700 focus:outline-none focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
                 />
               </div>
             </div>
@@ -264,7 +264,7 @@ function DesignDetailsForm() {
                 onChange={handleChange}
                 id="printRoute"
                 name="printRoute"
-                className="mt-2 block w-full bg-gray-600 rounded-md border-0 p-2.5 text-white ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-indigo-600 sm:text-sm sm:leading-6"
+                className="mt-2 block w-full bg-gray-600 rounded-md border-0 p-2.5 text-white ring-1 ring-inset ring-gray-700 focus:outline-none focus:ring-indigo-600 sm:text-sm sm:leading-6"
               >
                 <option>Reactive</option>
                 <option>Pigment Supersoft</option>
@@ -275,7 +275,7 @@ function DesignDetailsForm() {
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid lg:grid-cols-3 gap-4">
             <div>
               <label
                 htmlFor="screen-width"
@@ -291,7 +291,7 @@ function DesignDetailsForm() {
                   type="number"
                   name="screenWidth"
                   id="screenWidth"
-                  className="block w-full bg-gray-600 rounded-md border-0 p-2 text-white shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+                  className="block w-full bg-gray-600 rounded-md border-0 p-2 text-white shadow-sm ring-1 ring-inset ring-gray-700 focus:outline-none focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
                   min={0}
                 />
               </div>
@@ -311,7 +311,7 @@ function DesignDetailsForm() {
                   type="number"
                   name="dpi"
                   id="dpi"
-                  className="block w-full bg-gray-600 rounded-md border-0 p-2 text-white shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+                  className="block w-full bg-gray-600 rounded-md border-0 p-2 text-white shadow-sm ring-1 ring-inset ring-gray-700 focus:outline-none focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
                   min={0}
                 />
               </div>
@@ -329,7 +329,7 @@ function DesignDetailsForm() {
                 onChange={handleChange}
                 id="drop"
                 name="drop"
-                className="mt-2 block w-full bg-gray-600 rounded-md border-0 p-2.5 text-white ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-indigo-600 sm:text-sm sm:leading-6"
+                className="mt-2 block w-full bg-gray-600 rounded-md border-0 p-2.5 text-white ring-1 ring-inset ring-gray-700 focus:outline-none focus:ring-indigo-600 sm:text-sm sm:leading-6"
               >
                 <option>No Drop</option>
                 <option>Half Drop</option>
@@ -354,7 +354,7 @@ function DesignDetailsForm() {
                   rows={4}
                   name="specialInstructions"
                   id="specialInstructions"
-                  className="block w-full bg-gray-600 rounded-md border-0 p-2.5 text-white shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+                  className="block w-full bg-gray-600 rounded-md border-0 p-2.5 text-white shadow-sm ring-1 ring-inset ring-gray-700 focus:outline-none focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
                 />
               </div>
             </div>
@@ -363,17 +363,17 @@ function DesignDetailsForm() {
           <div className="flex justify-end">
             <button
               type="submit"
-              className="block w-32 mt-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 rounded-md shadow-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="block w-32 mt-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 rounded-md shadow-md focus:outline-none focus:outline-none focus:ring-indigo-500"
             >
               Add Design
             </button>
           </div>
         </form>
-        <div className="lg:w-1/2 min-h-screen flex-1 flex items-center justify-center m-2 p-2 bg-gradient-to-r from-gray-700 via-gray-900 to-gray-700 rounded-lg">
+        <div className="hidden lg:flex lg:w-1/2 min-h-screen flex-1 items-center justify-center m-2 p-2 bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 rounded-lg">
           <div className="text-center text-white px-4 py-8">
-            <h2 className="text-3xl font-bold mb-4">Design Your Future</h2>
+            <h2 className="text-3xl font-bold mb-4">Engraving New Designs Start Here...</h2>
             <p className="text-lg">
-              Every great design begins with a simple idea. Let your creativity
+              Every new design begins with a simple idea. Let your creativity
               flow, and bring your imagination to life. Your journey starts
               here.
             </p>
