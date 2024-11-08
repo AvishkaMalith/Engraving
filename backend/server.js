@@ -7,6 +7,7 @@ const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
 const designRoutes = require("./routes/designRoutes");
+const screenRoutes = require("./routes/screenRoutes");
 
 // Creating an express app
 const app = express();
@@ -21,12 +22,11 @@ app.use((req, res, next) => {
 
 // Defining the routes
 app.use("/api/designs", designRoutes);
+app.use("/api/screens", screenRoutes);
 
 // Connecting to the MongoDB
-mongoose.connect(mongoDBURL, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true
-}).then(() => {
+mongoose.connect(mongoDBURL)
+  .then(() => {
   // Listening for requests
   app.listen(port, () => {
     console.log("\nConnected to DB & Listening on port : " + port);

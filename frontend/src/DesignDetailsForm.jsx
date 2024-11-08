@@ -35,7 +35,7 @@ function DesignDetailsForm() {
     }
 
     try {
-      const newUDesign = await axios.post("http://192.168.8.197:4000/api/designs", {
+      const newDesign = await axios.post("http://localhost:4000/api/designs", {
         designNumber: formData.designNumber,
         exposedStatus: formData.exposedStatus,
         orderType: formData.orderType,
@@ -54,8 +54,15 @@ function DesignDetailsForm() {
       });
 
       // Displaying a message for a successful posting
-      if (newUDesign) {
+      if (newDesign) {
         alert("New design added successfully!");
+
+        // Create screen objects in api/screens based on the number of colors
+        for (let i = 0; i < formData.numberOfColors; i++) {
+          await axios.post("http://localhost:4000/api/screens", {
+              designNumber: formData.designNumber
+          });
+        }
       }
 
       // Clearing the form after submitting data
