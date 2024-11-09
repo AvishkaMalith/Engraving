@@ -4,6 +4,7 @@ const {
   createScreen,
   getScreens,
   getScreen,
+  searchScreens,
   updateScreen,
   deleteScreen
 } = require("../controllers/screenController");
@@ -13,6 +14,9 @@ const router = express.Router();
 
 // Declaring a get request to get the all screens
 router.get("/", getScreens);
+
+// Declaring a get request to search for screens
+router.get("/search", searchScreens);
 
 // Declaring a get request to get a specific screen
 router.get("/:id", getScreen);

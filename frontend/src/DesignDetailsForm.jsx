@@ -17,7 +17,7 @@ function DesignDetailsForm() {
     drop: "No Drop",
     specialInstructions: "",
     location: "Not Assigned",
-    currentStatus: "Awaiting Exposing",
+    currentStatus: "AwaitingEngraving",
   });
 
   const handleChange = (e) => {
@@ -29,7 +29,7 @@ function DesignDetailsForm() {
     event.preventDefault();
 
     // Check if numberOfExposedScreens is equal or less than the numberOfColors
-    if (formData.numberOfExposedScreens > formData.numberOfColors) {
+    if (Number(formData.numberOfColors) < Number(formData.numberOfExposedScreens)) {
       alert("Number of screens can't be greater than number of colors !");
       return;
     }
@@ -50,17 +50,20 @@ function DesignDetailsForm() {
         drop: formData.drop,
         specialInstructions: formData.specialInstructions,
         location: formData.location,
-        currentStatus: formData.currentStatus,
+        currentStatus: formData.currentStatus
       });
 
       // Displaying a message for a successful posting
-      if (newDesign) {
+      if (newDesign){
         alert("New design added successfully!");
 
-        // Create screen objects in api/screens based on the number of colors
+        // Create screen objects based on the number of colors
         for (let i = 0; i < formData.numberOfColors; i++) {
           await axios.post("http://localhost:4000/api/screens", {
-              designNumber: formData.designNumber
+              designNumber: formData.designNumber,
+              pitchNumber: formData.designNumber + "-P" + (i+1),
+              exposedType: "New",
+              screenStatus: "AwaitingEngraving"
           });
         }
       }
@@ -81,9 +84,9 @@ function DesignDetailsForm() {
         drop: "No Drop",
         specialInstructions: "",
         location: "Not Assigned",
-        currentStatus: "Awaiting Exposing",
+        currentStatus: "AwaitingEngraving",
       });
-    } catch (error) {
+    } catch(error){
       console.error("Error adding design:", error);
       alert("There was an issue adding the user. Please try again.");
     }

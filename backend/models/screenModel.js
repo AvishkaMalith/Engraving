@@ -4,43 +4,43 @@ const mongoose = require("mongoose");
 // Defining the design schema
 const screenSchema = new mongoose.Schema({
   designNumber: {
-    type: Number,
-    required: false
+    type: Number
+  },
+  pitchNumber: {
+    type: String
   },
   exposedType: {
-    type: String,
-    required:false
+    type: String
   },
   completedDate: {
-    type: Date,
-    required: false
+    type: Date
   },
   engraver: {
-    type: String,
-    required: false
+    type: String
+  },
+  endringFittedBy: {
+    type: String
   },
   screenBrandAndMesh: {
-    type: String,
-    required: false
+    type: String
   },
   screenMaterialCode: {
-    type: String,
-    required: false
+    type: String
   },
   screenReferenceNumber: {
-    type: String,
-    required: false
+    type: String
   },
   rowScreenDocumentHeader: {
-    type: String,
-    required: false
+    type: String
   },
   exposedScreenDocumentHeader: {
-    type: String,
-    required: false
+    type: String
+  },
+  screenStatus: {
+    type: String
   }
 }, { timestamps: true });
 
-const Design = mongoose.model("Screen", screenSchema);
+const Screen = mongoose.model("Screen", screenSchema);
 
-module.exports = Design;
+module.exports = Screen;

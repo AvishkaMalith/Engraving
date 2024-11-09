@@ -31,27 +31,33 @@ const getScreen = async (req, res) => {
 const createScreen = async (req, res) => {
   const {
     designNumber,
+    pitchNumber,
     exposedType,
     completedDate,
     engraver,
+    endringFittedBy,
     screenBrandAndMesh,
     screenMaterialCode,
     screenReferenceNumber,
     rowScreenDocumentHeader,
-    exposedScreenDocumentHeader
+    exposedScreenDocumentHeader,
+    screenStatus
   } = req.body;
 
   try {
     const newScreen = await screenModel.create({
       designNumber,
+      pitchNumber,
       exposedType,
       completedDate,
       engraver,
+      endringFittedBy,
       screenBrandAndMesh,
       screenMaterialCode,
       screenReferenceNumber,
       rowScreenDocumentHeader,
-      exposedScreenDocumentHeader
+      exposedScreenDocumentHeader,
+      screenStatus
     });
 
     res.status(200).json({
@@ -63,6 +69,35 @@ const createScreen = async (req, res) => {
     res.status(500).json({ message: "An error occured while adding a new screen" });
   }
 };
+
+// Defininf a get request to search for screens
+const searchScreens = async (req, res) => {
+  try {
+    // Retrieve query and designations from request parameters
+    const { query, screenStatus } = req.query;
+
+    // Build search criteria
+    const searchCriteria = {};
+
+    // Only add designStatus to criteria if provided
+    if(screenStatus){
+      searchCriteria.screenStatus = screenStatus;
+    }
+
+    // If a query term is provided, add regex search on designName
+    if(query){
+      searchCriteria.designNumber = new RegExp(query, "i");
+    }
+    
+    // Find screens that match the criteria
+    const screens = await screenModel.find(searchCriteria);
+
+    res.json(screens);
+  } catch (error) {
+    console.error('Error fetching screens:', error);
+    res.status(500).json({ message: 'Error occurred during search', error }); 
+  }
+}
 
 // Defining a delete request to delete a specific screen
 const deleteScreen = async (req, res) => {
@@ -97,6 +132,7 @@ const updateScreen = async (req, res) => {
 module.exports = {
   getScreens,
   getScreen,
+  searchScreens,
   createScreen,
   updateScreen,
   deleteScreen

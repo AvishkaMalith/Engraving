@@ -4,64 +4,49 @@ const mongoose = require("mongoose");
 // Defining the design schema
 const designSchema = new mongoose.Schema({
   designNumber: {
-    type: Number,
-    required: true
+    type: Number
   },
   exposedStatus: {
-    type: String,
-    required: true
+    type: String
   },
   orderType: {
-    type: String,
-    required: true
+    type: String
   },
   numberOfColors: {
-    type: Number,
-    required: true
+    type: Number
   },
   numberOfExposedScreens: {
-    type: Number,
-    required: true
+    type: Number
   },
   receivedDate: {
-    type: Date,
-    required: true
+    type: Date
   },
   printRoute: {
-    type: String,
-    required: true
+    type: String
   },
   designName: {
-    type: String,
-    required: true
+    type: String
   },
   customer: {
-    type: String,
-    required: true
+    type: String
   },
   screenWidth: {
-    type: Number,
-    required: true
+    type: Number
   },
   dpi: {
-    type: Number,
-    required: true
+    type: Number
   },
   drop: {
-    type: String,
-    required: true
+    type: String
   },
   specialInstructions: {
-    type: String,
-    required: true
+    type: String
   },
   location: {
-    type: String,
-    required: true
+    type: String
   },
   currentStatus: {
-    type: String,
-    required: true
+    type: String
   }
 }, { timestamps: true });
 

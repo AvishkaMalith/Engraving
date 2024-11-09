@@ -12,16 +12,16 @@ import {
   PlusIcon,
 } from "@heroicons/react/24/outline";
 
-import { 
-  Bars3Icon, 
-  MagnifyingGlassIcon, 
-  ArrowRightCircleIcon 
+import {
+  Bars3Icon,
+  MagnifyingGlassIcon,
+  ArrowRightCircleIcon,
 } from "@heroicons/react/20/solid";
 import axios from "axios";
 
 const navigation = [
   { name: "Designs", href: "#", icon: FolderIcon, current: true },
-  { name: "Screens", href: "#", icon: ServerIcon, current: false },
+  { name: "Endring Fittings", href: "#", icon: ServerIcon, current: false },
   { name: "Screen Locations", href: "#", icon: SignalIcon, current: false },
   { name: "Storage", href: "#", icon: GlobeAltIcon, current: false },
   { name: "Employees", href: "#", icon: UserIcon, current: false },
@@ -70,38 +70,36 @@ function Dashboard() {
   const stats = [
     { name: "New Designs", value: designs.length },
     { name: "New Screens", value: numberOfNewScreens },
-    { name: "Re-Expose Screens", value: numberOfReExposeScreens },
-    { name: "Completed", value: "98 %" },
+    { name: "Re-Expose Screens", value: numberOfReExposeScreens }
   ];
 
   useEffect(() => {
-    const getDesigns = async () => {
+    const getAwaitingEngravingScreens = async () => {
       try {
-        const designResults = await axios.get(
-          "http://localhost:4000/api/designs"
-        );
-        setDesigns(designResults.data);
-
-        // Calculate the sum of new Screens
-        const totalNewScreens = designResults.data.reduce((acc, design) => {
-          return acc + (design.numberOfExposedScreens || 0);
-        }, 0);
-
-        const totalReExposeScreens = designResults.data.reduce((acc, design) => {
-          // Check if exposedStatus is "Re-Expose"
-          if (design.exposedStatus === "Re-Expose") {
-            return acc + (design.numberOfExposedScreens || 0);
+        // Fetch only designs with "Awaiting Engraving" status
+        const awaitingEngravingResults = await axios.get(
+          "http://localhost:4000/api/screens/search",
+          {
+            params: { screenStatus: "AwaitingEngraving" }
           }
-          return acc;
-        }, 0);
+        );
 
-        setNumberOfNewScreens(totalNewScreens);
-        setNumberOfReExposeScreens(totalReExposeScreens);
+        const newScreens = awaitingEngravingResults.data.filter(
+          (screen) => screen.exposedType === "New"
+        );
+        setNumberOfNewScreens(newScreens.length);
+
+        const reExposeScreens = awaitingEngravingResults.data.filter(
+          (screen) => screen.exposedType === "Re-Expose"
+        );
+        setNumberOfReExposeScreens(reExposeScreens.length);
+
       } catch (error) {
         console.error("Error fetching data", error);
       }
     };
-    getDesigns();
+
+    getAwaitingEngravingScreens();
   }, []);
 
   return (
