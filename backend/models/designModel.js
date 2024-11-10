@@ -45,7 +45,7 @@ const designSchema = new mongoose.Schema({
   location: {
     type: String
   },
-  currentStatus: {
+  designStatus: {
     type: String
   }
 }, { timestamps: true });

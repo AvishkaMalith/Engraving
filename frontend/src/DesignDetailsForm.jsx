@@ -17,7 +17,7 @@ function DesignDetailsForm() {
     drop: "No Drop",
     specialInstructions: "",
     location: "Not Assigned",
-    currentStatus: "AwaitingEngraving",
+    designStatus: "AwaitingEngraving",
   });
 
   const handleChange = (e) => {
@@ -50,7 +50,7 @@ function DesignDetailsForm() {
         drop: formData.drop,
         specialInstructions: formData.specialInstructions,
         location: formData.location,
-        currentStatus: formData.currentStatus
+        designStatus: formData.designStatus
       });
 
       // Displaying a message for a successful posting
@@ -84,7 +84,7 @@ function DesignDetailsForm() {
         drop: "No Drop",
         specialInstructions: "",
         location: "Not Assigned",
-        currentStatus: "AwaitingEngraving",
+        designStatus: "AwaitingEngraving",
       });
     } catch(error){
       console.error("Error adding design:", error);

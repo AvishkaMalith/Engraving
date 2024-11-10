@@ -44,7 +44,7 @@ const createDesign = async (req, res) => {
     drop,
     specialInstructions,
     location,
-    currentStatus
+    designStatus
   } = req.body;
 
   try {
@@ -63,7 +63,7 @@ const createDesign = async (req, res) => {
       drop,
       specialInstructions,
       location,
-      currentStatus
+      designStatus
     });
 
     res.status(200).json({
@@ -75,6 +75,35 @@ const createDesign = async (req, res) => {
     res.status(500).json({ message: "An error occured while adding a new design" });
   }
 };
+
+// Defininf a get request to search for designs
+const searchDesigns = async (req, res) => {
+  try {
+    // Retrieve query and designations from request parameters
+    const { query, designStatus } = req.query;
+
+    // Build search criteria
+    const searchCriteria = {};
+
+    // Only add designStatus to criteria if provided
+    if(designStatus){
+      searchCriteria.designStatus = designStatus;
+    }
+
+    // If a query term is provided, add regex search on designName
+    if(query){
+      searchCriteria.designNumber = new RegExp(query, "i");
+    }
+    
+    // Find screens that match the criteria
+    const designs = await designModel.find(searchCriteria);
+
+    res.json(designs);
+  } catch (error) {
+    console.error('Error fetching designs:', error);
+    res.status(500).json({ message: 'Error occurred during search', error }); 
+  }
+}
 
 // Defining a delete request to delete a specific design
 const deleteDesign = async (req, res) => {
@@ -109,6 +138,7 @@ const updateDesign = async (req, res) => {
 module.exports = {
   getDesigns,
   getDesign,
+  searchDesigns,
   createDesign,
   updateDesign,
   deleteDesign

@@ -4,6 +4,7 @@ const {
   createDesign,
   getDesigns,
   getDesign,
+  searchDesigns,
   updateDesign,
   deleteDesign
 } = require("../controllers/designController");
@@ -13,6 +14,9 @@ const router = express.Router();
 
 // Declaring a get request to get the all elections
 router.get("/", getDesigns);
+
+// Declaring a get request to search for designs
+router.get("/search", searchDesigns);
 
 // Declaring a get request to get a specific election
 router.get("/:id", getDesign);

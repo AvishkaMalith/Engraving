@@ -61,35 +61,34 @@ function classNames(...classes) {
 
 function Dashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [designs, setDesigns] = useState([]);
+  const [awaitingEngravingDesigns, setAwaitingEngrvingDesigns] = useState([]);
+  const [numberOfNewDesigns, setNumberOfNewDesigns] = useState(0);
   const [numberOfNewScreens, setNumberOfNewScreens] = useState(0);
   const [numberOfReExposeScreens, setNumberOfReExposeScreens] = useState(0);
 
   const navigate = useNavigate();
 
   const stats = [
-    { name: "New Designs", value: designs.length },
+    { name: "New Designs", value: numberOfNewDesigns },
     { name: "New Screens", value: numberOfNewScreens },
-    { name: "Re-Expose Screens", value: numberOfReExposeScreens }
+    { name: "Re-Expose Screens", value: numberOfReExposeScreens },
+    { name: "Total Screens", value: numberOfNewScreens + numberOfReExposeScreens}
   ];
 
   useEffect(() => {
     const getAwaitingEngravingScreens = async () => {
       try {
-        // Fetch only designs with "Awaiting Engraving" status
-        const awaitingEngravingResults = await axios.get(
+        // Fetch only screens with "AwaitingEngraving" status
+        const screenResults = await axios.get(
           "http://localhost:4000/api/screens/search",
           {
             params: { screenStatus: "AwaitingEngraving" }
           }
         );
 
-        const newScreens = awaitingEngravingResults.data.filter(
-          (screen) => screen.exposedType === "New"
-        );
-        setNumberOfNewScreens(newScreens.length);
+        setNumberOfNewScreens(screenResults.data.length);
 
-        const reExposeScreens = awaitingEngravingResults.data.filter(
+        const reExposeScreens = screenResults.data.filter(
           (screen) => screen.exposedType === "Re-Expose"
         );
         setNumberOfReExposeScreens(reExposeScreens.length);
@@ -99,6 +98,25 @@ function Dashboard() {
       }
     };
 
+    const getAwaitingEngravingDesigns = async () => {
+      try {
+        // Fetch only designs with "AwaitingEngraving" status
+        const designResults = await axios.get(
+          "http://localhost:4000/api/designs/search",
+          {
+            params: { designStatus: "AwaitingEngraving" }
+          }
+        );
+
+        setAwaitingEngrvingDesigns(designResults.data);
+        setNumberOfNewDesigns(designResults.data.length);
+
+      } catch (error) {
+        console.error("Error fetching data", error);
+      }
+    };
+
+    getAwaitingEngravingDesigns();
     getAwaitingEngravingScreens();
   }, []);
 
@@ -505,8 +523,8 @@ function Dashboard() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5">
-                  {designs &&
-                    designs.map((design) => (
+                  {awaitingEngravingDesigns &&
+                    awaitingEngravingDesigns.map((design) => (
                       <tr key={design._id}>
                         <td className="py-4 pl-4 pr-8 sm:pl-6 lg:pl-8">
                           <div className="flex items-center gap-x-4">
