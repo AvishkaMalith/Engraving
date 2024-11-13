@@ -1,5 +1,6 @@
 // Importing the Design Model
 const screenModel = require("../models/screenModel");
+const mongoose = require("mongoose");
 
 // Defining a get request to to retrieve all the designs
 const getScreens = async (req, res) => {
@@ -86,7 +87,7 @@ const searchScreens = async (req, res) => {
 
     // If a query term is provided, add regex search on designName
     if(query){
-      searchCriteria.designNumber = new RegExp(query, "i");
+      searchCriteria.designNumber = parseInt(query, 10);
     }
     
     // Find screens that match the criteria

@@ -13,7 +13,7 @@ const screenSchema = new mongoose.Schema({
     type: String
   },
   completedDate: {
-    type: Date
+    type: String
   },
   engraver: {
     type: String

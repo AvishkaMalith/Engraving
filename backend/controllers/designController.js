@@ -92,7 +92,7 @@ const searchDesigns = async (req, res) => {
 
     // If a query term is provided, add regex search on designName
     if(query){
-      searchCriteria.designNumber = new RegExp(query, "i");
+      searchCriteria.designNumber = query;
     }
     
     // Find screens that match the criteria

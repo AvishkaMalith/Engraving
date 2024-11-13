@@ -19,7 +19,7 @@ const designSchema = new mongoose.Schema({
     type: Number
   },
   receivedDate: {
-    type: Date
+    type: Number
   },
   printRoute: {
     type: String

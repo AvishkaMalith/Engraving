@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import { Dialog, Transition } from "@headlessui/react";
 import {
   UserIcon,
@@ -10,12 +10,14 @@ import {
   SignalIcon,
   XMarkIcon,
   PlusIcon,
+  CheckIcon,
 } from "@heroicons/react/24/outline";
 
 import {
   Bars3Icon,
   MagnifyingGlassIcon,
   ArrowRightCircleIcon,
+  ClockIcon,
 } from "@heroicons/react/20/solid";
 import axios from "axios";
 
@@ -59,66 +61,126 @@ function classNames(...classes) {
   return classes.filter(Boolean).join(" ");
 }
 
-function Dashboard() {
+function DesignsEngraving() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [awaitingEngravingDesigns, setAwaitingEngrvingDesigns] = useState([]);
-  const [numberOfNewDesigns, setNumberOfNewDesigns] = useState(0);
-  const [numberOfNewScreens, setNumberOfNewScreens] = useState(0);
-  const [numberOfReExposeScreens, setNumberOfReExposeScreens] = useState(0);
 
-  const navigate = useNavigate();
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [currentScreens, setCurrentScreens] = useState([]);
+
+  const [updatedScreen, setUpdatedScreen] = useState({
+    screenBrandAndMeshValue: "",
+    completedDateValue: new Date().toISOString().split("T")[0],
+    engraverValue: "",
+    screenStatusValue: "AwaitingEndringFitting",
+  });
+
+  // Receiving the state of design from the "Dashboard.jsx"
+  const location = useLocation();
+  const currentDesign = location.state.design || {};
 
   const stats = [
-    { name: "New Designs", value: numberOfNewDesigns },
-    { name: "New Screens", value: numberOfNewScreens },
-    { name: "Re-Expose Screens", value: numberOfReExposeScreens },
-    { name: "Total Screens", value: numberOfNewScreens + numberOfReExposeScreens}
+    {
+      statIdx: 1,
+      name: "Design Number #",
+      value: currentDesign.designNumber,
+    },
+    {
+      statIdx: 2,
+      name: "Number Of Colors #",
+      value: currentDesign.numberOfColors,
+    },
+    {
+      statIdx: 3,
+      name: "Number Of Screens #",
+      value: currentDesign.numberOfExposedScreens,
+    },
+    {
+      statIdx: 4,
+      name: "Received Date",
+      value: currentDesign.receivedDate,
+    },
+    {
+      statIdx: 5,
+      name: "Print Route",
+      value: currentDesign.printRoute,
+    },
+    {
+      statIdx: 6,
+      name: "Desin Name",
+      value: currentDesign.designName,
+    },
+    {
+      statIdx: 7,
+      name: "Customer",
+      value: currentDesign.customer,
+    },
+    {
+      statIdx: 8,
+      name: "Screen Width",
+      value: currentDesign.screenWidth + " mm",
+    },
+    {
+      statIdx: 9,
+      name: "DPI",
+      value: currentDesign.dpi + " px",
+    },
+    {
+      statIdx: 10,
+      name: "Drop",
+      value: currentDesign.drop,
+    },
   ];
 
   useEffect(() => {
-    const getAwaitingEngravingScreens = async () => {
+    const getScreenDetails = async () => {
       try {
-        // Fetch only screens with "AwaitingEngraving" status
-        const screenResults = await axios.get(
-          "http://localhost:4000/api/screens/search",
-          {
-            params: { screenStatus: "AwaitingEngraving" }
-          }
+        const screenDetails = await axios.get(
+          `http://localhost:4000/api/screens/search?query=${currentDesign.designNumber}`
         );
 
-        setNumberOfNewScreens(screenResults.data.length);
-
-        const reExposeScreens = screenResults.data.filter(
-          (screen) => screen.exposedType === "Re-Expose"
-        );
-        setNumberOfReExposeScreens(reExposeScreens.length);
-
+        setCurrentScreens(screenDetails.data);
       } catch (error) {
-        console.error("Error fetching data", error);
+        console.error("Error fetching screen details:", error);
       }
     };
 
-    const getAwaitingEngravingDesigns = async () => {
-      try {
-        // Fetch only designs with "AwaitingEngraving" status
-        const designResults = await axios.get(
-          "http://localhost:4000/api/designs/search",
-          {
-            params: { designStatus: "AwaitingEngraving" }
-          }
-        );
+    getScreenDetails();
+    setIsUpdating(false);
+  }, [isUpdating]);
 
-        setAwaitingEngrvingDesigns(designResults.data);
-        setNumberOfNewDesigns(designResults.data.length);
+  const updateScreenExposedType = async (screenId, newExposedType) => {
+    try {
+      await axios.patch(`http://localhost:4000/api/screens/${screenId}`, {
+        // Updating screen exposedType with ewExposedType
+        exposedType: newExposedType,
+      });
+    } catch (error) {
+      console.error("Error updating screen details:", error);
+    }
+  };
 
-      } catch (error) {
-        console.error("Error fetching data", error);
-      }
-    };
+  const updateOtherScreenDetails = async (screenId, screenStatusValue) => {
+    try {
+      await axios.patch(`http://localhost:4000/api/screens/${screenId}`, {
+        // Updating screen details with their values
+        screenBrandAndMesh: updatedScreen.screenBrandAndMeshValue,
+        completedDate: updatedScreen.completedDateValue,
+        engraver: updatedScreen.engraverValue,
+        screenStatus: screenStatusValue,
+      });
 
-    getAwaitingEngravingDesigns();
-    getAwaitingEngravingScreens();
-  }, []);
+      setUpdatedScreen({
+        screenBrandAndMeshValue: "",
+        completedDateValue: new Date().toISOString().split("T")[0],
+        engraverValue: "",
+        screenStatusValue: "AwaitingEndringFitting",
+      });
+
+      setIsUpdating(false);
+    } catch (error) {
+      console.error("Error updating screen details:", error);
+    }
+  };
 
   return (
     <>
@@ -370,7 +432,6 @@ function Dashboard() {
               </form>
               <button
                 type="button"
-                onClick={() => navigate("/DesignDetailsForm")}
                 className="inline-flex items-center justify-center mt-4 h-1/2 gap-x-1.5 rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
               >
                 <PlusIcon className="-ml-0.5 h-5 w-5" aria-hidden="true" />
@@ -388,53 +449,8 @@ function Dashboard() {
 
           <main>
             <header>
-              {/* Secondary navigation */}
-              {/* <nav className="flex overflow-x-auto border-b border-white/10 py-4">
-                <ul
-                  role="list"
-                  className="flex min-w-full flex-none gap-x-6 px-4 text-sm font-semibold leading-6 text-gray-400 sm:px-6 lg:px-8"
-                >
-                  {secondaryNavigation.map((item) => (
-                    <li key={item.name}>
-                      <a
-                        href={item.href}
-                        className={item.current ? "text-indigo-400" : ""}
-                      >
-                        {item.name}
-                      </a>
-                    </li>
-                  ))}
-                </ul>
-              </nav> */}
-
-              {/* Heading */}
-              {/* <div className="flex flex-col items-start justify-between gap-x-8 gap-y-4 bg-gray-900 px-4 py-4 sm:flex-row sm:items-center sm:px-6 lg:px-8">
-                <div>
-                  <div className="flex items-center gap-x-3">
-                    <div className="flex-none rounded-full bg-green-400/10 p-1 text-green-400">
-                      <div className="h-2 w-2 rounded-full bg-current" />
-                    </div>
-                    <h1 className="flex gap-x-3 text-base leading-7">
-                      <span className="font-semibold text-white">
-                        Planetaria
-                      </span>
-                      <span className="text-gray-600">/</span>
-                      <span className="font-semibold text-white">
-                        mobile-api
-                      </span>
-                    </h1>
-                  </div>
-                  <p className="mt-2 text-xs leading-6 text-gray-400">
-                    Deploys from GitHub via main branch
-                  </p>
-                </div>
-                <div className="order-first flex-none rounded-full bg-indigo-400/10 px-2 py-1 text-xs font-medium text-indigo-400 ring-1 ring-inset ring-indigo-400/30 sm:order-none">
-                  Production
-                </div>
-              </div> */}
-
               {/* Stats */}
-              <div className="grid grid-cols-1 bg-gray-900 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="grid grid-cols-1 bg-gray-900 sm:grid-cols-4 lg:grid-cols-5">
                 {stats.map((stat, statIdx) => (
                   <div
                     key={stat.name}
@@ -451,7 +467,7 @@ function Dashboard() {
                       {stat.name}
                     </p>
                     <p className="mt-2 flex items-baseline gap-x-2">
-                      <span className="text-4xl font-semibold tracking-tight text-white">
+                      <span className="text-2xl font-semibold tracking-tight text-white">
                         {stat.value}
                       </span>
                       {stat.unit ? (
@@ -472,13 +488,12 @@ function Dashboard() {
               </h2>
               <table className="mt-6 w-full whitespace-nowrap text-left">
                 <colgroup>
-                  <col className="w-1/7 sm:w-2/12" />
-                  <col className="lg:w-1/7" />
-                  <col className="lg:w-1/7" />
-                  <col className="lg:w-1/7" />
+                  <col className="w-1/8 sm:w-1/12" />
+                  <col className="lg:w-1/4" />
                   <col className="lg:w-1/5" />
-                  <col className="lg:w-1/7" />
-                  <col className="lg:w-1/7" />
+                  <col className="lg:w-1/4" />
+                  <col className="lg:w-1/6" />
+                  <col className="lg:w-1/12" />
                 </colgroup>
                 <thead className="border-b border-white/10 text-sm leading-6 text-gray-400">
                   <tr>
@@ -498,25 +513,19 @@ function Dashboard() {
                       scope="col"
                       className="md:hidden py-2 pl-0 pr-8 font-mono sm:table-cell lg:table-cell"
                     >
-                      Colors #
+                      Brand & Mesh / Use
                     </th>
                     <th
                       scope="col"
                       className="py-2 pl-0 pr-4 text-right font-mono sm:pr-8 sm:text-left lg:pr-20"
                     >
-                      Screens #
+                      Completed Date
                     </th>
                     <th
                       scope="col"
                       className="hidden py-2 pl-0 pr-8 font-mono md:table-cell lg:pr-20"
                     >
-                      Design Name
-                    </th>
-                    <th
-                      scope="col"
-                      className="hidden py-2 pl-0 pr-8 font-mono md:table-cell lg:pr-20"
-                    >
-                      Customer
+                      Engraver
                     </th>
                     <th
                       scope="col"
@@ -525,84 +534,197 @@ function Dashboard() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5">
-                  {awaitingEngravingDesigns &&
-                    awaitingEngravingDesigns.map((design) => (
-                      <tr key={design._id}>
+                  {currentScreens &&
+                    currentScreens.map((screen) => (
+                      <tr key={screen._id}>
                         <td className="py-4 pl-4 pr-8 sm:pl-6 lg:pl-8">
                           <div className="flex items-center gap-x-4">
-                            {/* <img
-                            src={design.user.imageUrl}
-                            alt=""
-                            className="h-8 w-8 rounded-full bg-gray-800"
-                          /> */}
                             <div className="truncate text-lg font-mono leading-6 text-white">
-                              {design.designNumber}
+                              {screen.pitchNumber}
                             </div>
                           </div>
                         </td>
                         <td className="hidden py-4 pl-0 pr-4 sm:table-cell sm:pr-8">
                           <div className="flex gap-x-3">
-                            {design.exposedStatus === "New" ? (
-                              <span className="inline-flex items-center rounded-md bg-green-500/10 px-2 py-1 text-sm font-medium text-green-400 ring-1 ring-inset ring-green-500/20">
-                                {design.exposedStatus}
-                              </span>
+                            {screen.screenStatus === "AwaitingEngraving" ? (
+                              <div>
+                                <span
+                                  className={`inline-flex items-center rounded-md px-2 py-1 text-sm font-medium ring-1 ring-inset ${
+                                    screen.exposedType === "New"
+                                      ? "bg-green-500/10 text-green-400 ring-green-500/20"
+                                      : "bg-blue-500/10 text-blue-400 ring-blue-500/20"
+                                  }`}
+                                >
+                                  {screen.exposedType}
+                                </span>
+                                <button
+                                  onClick={() => {
+                                    updateScreenExposedType(
+                                      screen._id,
+                                      screen.exposedType === "New"
+                                        ? "Use"
+                                        : "New"
+                                    );
+                                    setIsUpdating(true);
+                                  }}
+                                  className={`inline-flex items-center focus:outline-none rounded hover:bg-sky-800 px-2 py-1 text-sm font-medium ring-1 ring-inset ${
+                                    screen.exposedType === "Use"
+                                      ? "bg-green-500/10 text-green-400 ring-green-500/20"
+                                      : "bg-blue-500/10 text-blue-400 ring-blue-500/20"
+                                  }`}
+                                >
+                                  {screen.exposedType === "New" ? "Use" : "New"}
+                                </button>
+                              </div>
                             ) : (
-                              <span className="inline-flex items-center rounded-md bg-red-500/10 px-2 py-1 text-sm font-medium text-red-400 ring-1 ring-inset ring-red-500/20">
-                                {design.exposedStatus}
+                              <span className="inline-flex items-center focus:outline-none rounded-md bg-gray-500/10 text-gray-200 ring-gray-500/20 px-2 py-1 text-md font-mono ring-2 ring-inset">
+                                {screen.exposedType}
                               </span>
                             )}
                           </div>
                         </td>
-                        <td className="py-4 pl-0 pr-4 sm:table-cell md:hidden lg:table-cell sm:pr-8">
+                        <td className="py-4 pl-0 pr-2 sm:table-cell md:hidden lg:table-cell sm:pr-2">
                           <div className="flex gap-x-3">
                             <div className="font-mono text-lg leading-6 text-white">
-                              {design.numberOfColors}
+                              {screen.screenStatus === "AwaitingEngraving" ? (
+                                screen.exposedType === "New" ? (
+                                  <select
+                                    onChange={(event) => {
+                                      const newValue = event.target.value;
+
+                                      setUpdatedScreen((prevDetails) => ({
+                                        ...prevDetails,
+                                        screenBrandAndMeshValue: newValue,
+                                      }));
+                                    }}
+                                    value={
+                                      updatedScreen.screenBrandAndMeshValue
+                                    }
+                                    className="p-1 w-full text-sm font-medium text-gray-100 bg-gray-800 border border-gray-300 focus:outline-indigo-500 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                  >
+                                    <option value=""></option>
+                                    <option value="125CHINA">125 CHINA</option>
+                                    <option value="135CHINA">135 CHINA</option>
+                                    <option value="155CHINA">155 CHINA</option>
+                                    <option value="155CHINA">155 CHINA</option>
+                                  </select>
+                                ) : (
+                                  <input
+                                    type="text"
+                                    value={
+                                      updatedScreen.screenBrandAndMeshValue
+                                    }
+                                    onChange={(event) => {
+                                      const newValue = event.target.value;
+
+                                      setUpdatedScreen((prevDetails) => ({
+                                        ...prevDetails,
+                                        screenBrandAndMeshValue: newValue,
+                                      }));
+                                    }}
+                                    placeholder="Enter design number"
+                                    className="p-1 w-full text-sm font-medium text-gray-100 bg-gray-800 border border-gray-300 focus:outline-indigo-500 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                  />
+                                )
+                              ) : (
+                                <p className="p-1 w-full text-sm text-center font-medium text-gray-100 bg-gray-800 border border-gray-300 focus:outline-indigo-500 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                  {screen.screenBrandAndMesh}
+                                </p>
+                              )}
                             </div>
-                            {/* <span className="inline-flex items-center rounded-md bg-gray-400/10 px-2 py-1 text-xs font-medium text-gray-400 ring-1 ring-inset ring-gray-400/20">
-                            {design.numberOfExposedScreens}
-                          </span> */}
                           </div>
                         </td>
                         <td className="py-4 pl-0 pr-4 text-sm leading-6 sm:pr-8 lg:pr-20">
                           <div className="flex items-center justify-end gap-x-2 sm:justify-start">
-                            {/* <time
-                            className="text-gray-400 sm:hidden"
-                            dateTime={design.receivedDate}
-                          >
-                            {design.receivedDate}
-                          </time>
-                          <div
-                            className={classNames(
-                              statuses[design.status],
-                              "flex-none rounded-full p-1"
-                            )}
-                          >
-                            <div className="h-1.5 w-1.5 rounded-full bg-current" />
-                          </div> */}
                             <div className="font-mono text-lg leading-6 text-white">
-                              {design.numberOfExposedScreens}
+                              {screen.screenStatus === "AwaitingEngraving" ? (
+                                <input
+                                  type="date"
+                                  required
+                                  className="p-1 w-full text-sm font-medium text-gray-100 bg-gray-800 border border-gray-300 focus:outline-indigo-500 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                  value={updatedScreen.completedDateValue}
+                                  onChange={(event) => {
+                                    const newValue = event.target.value;
+
+                                    setUpdatedScreen((prevDetails) => ({
+                                      ...prevDetails,
+                                      completedDateValue: newValue,
+                                    }));
+                                  }}
+                                />
+                              ) : (
+                                <p className="p-1 w-full text-sm text-center font-medium text-gray-100 bg-gray-800 border border-gray-300 focus:outline-indigo-500 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                  {screen.completedDate}
+                                </p>
+                              )}
                             </div>
                           </div>
                         </td>
                         <td className="hidden py-4 pl-0 pr-8 text-lg leading-6 font-mono text-white md:table-cell lg:pr-10">
-                          {design.designName}
-                        </td>
-                        <td className="hidden py-4 pl-0 pr-8 text-lg leading-6 font-mono text-white md:table-cell lg:pr-10">
-                          {design.customer}
+                          {screen.screenStatus === "AwaitingEngraving" ? (
+                            <select
+                              onChange={(event) => {
+                                const newValue = event.target.value;
+
+                                setUpdatedScreen((prevDetails) => ({
+                                  ...prevDetails,
+                                  engraverValue: newValue,
+                                }));
+                              }}
+                              value={updatedScreen.engraverValue}
+                              className="p-1 w-full text-sm font-medium text-gray-100 bg-gray-800 border border-gray-300 focus:outline-indigo-500 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            >
+                              <option value=""></option>
+                              <option value="Person-A">Person-A</option>
+                              <option value="Person-B">Person-B</option>
+                              <option value="Person-C">Person-C</option>
+                              <option value="Person-D">Person-D</option>
+                            </select>
+                          ) : (
+                            <p className="p-1 w-full text-sm text-center font-medium text-gray-100 bg-gray-800 border border-gray-300 focus:outline-indigo-500 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                              {screen.engraver}
+                            </p>
+                          )}
                         </td>
                         <td className="hidden py-4 pl-0 pr-8 text-sm leading-6 text-white md:table-cell md:pr-12 sm:pr-20">
                           <div className="flex items-start justify-start">
-                            <button
-                              type="button"
-                              className="inline-flex items-center justify-start gap-x-2 rounded-md bg-indigo-600 px-3 py-2 text-md font-mono text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
-                              onClick={() => navigate(`/DesignsEngraving`, { state: {design} })}
-                            >
-                              Start Engraving
-                              <ArrowRightCircleIcon
-                                className="-ml-0.5 h-5 w-5 text-green-500"
-                                aria-hidden="true"
-                              />
-                            </button>
+                            {screen.screenStatus === "AwaitingEngraving" ? (
+                              <button
+                                type="button"
+                                className="inline-flex items-center justify-start gap-x-2 rounded-md bg-sky-900 px-3 py-2 text-md font-mono text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+                                onClick={() => {
+                                  updateOtherScreenDetails(
+                                    screen._id,
+                                    "AwaitingEndringFitting"
+                                  );
+                                  setIsUpdating(true);
+                                }}
+                              >
+                                Pending
+                                <ClockIcon
+                                  className="-ml-0.5 h-5 w-5 text-green-500"
+                                  aria-hidden="true"
+                                />
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                className="inline-flex items-center justify-start gap-x-2 rounded-md bg-gray-700 px-3 py-2 text-md font-mono text-white shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+                                onClick={() => {
+                                  updateOtherScreenDetails(
+                                    screen._id,
+                                    "AwaitingEngraving"
+                                  );
+                                  setIsUpdating(true);
+                                }}
+                              >
+                                Completed
+                                <CheckIcon
+                                  className="-ml-0.5 h-5 w-5 text-green-500"
+                                  aria-hidden="true"
+                                />
+                              </button>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -617,4 +739,4 @@ function Dashboard() {
   );
 }
 
-export default Dashboard;
+export default DesignsEngraving;

@@ -373,7 +373,7 @@ function DesignDetailsForm() {
           <div className="flex justify-end">
             <button
               type="submit"
-              className="block w-32 mt-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 rounded-md shadow-md focus:outline-none focus:outline-none focus:ring-indigo-500"
+              className="block w-32 mt-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 rounded-md shadow-md focus:outline-indigo-500 focus:ring-indigo-500"
             >
               Add Design
             </button>
