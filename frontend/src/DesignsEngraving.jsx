@@ -11,6 +11,7 @@ import {
   XMarkIcon,
   PlusIcon,
   CheckIcon,
+  PencilIcon,
 } from "@heroicons/react/24/outline";
 
 import {
@@ -86,12 +87,12 @@ function DesignsEngraving() {
     },
     {
       statIdx: 2,
-      name: "Number Of Colors #",
+      name: "Colors #",
       value: currentDesign.numberOfColors,
     },
     {
       statIdx: 3,
-      name: "Number Of Screens #",
+      name: "Screens #",
       value: currentDesign.numberOfExposedScreens,
     },
     {
@@ -144,14 +145,54 @@ function DesignsEngraving() {
       }
     };
 
+    const countFinishedScreens = async () => {
+      try {
+        const screenDetails = await axios.get(
+          `http://localhost:4000/api/screens/search?query=${currentDesign.designNumber}`, {
+          params: {
+            screenStatus: "AwaitingEndringFitting"
+          }
+        }
+        );
+
+        if(screenDetails.data.length === 0) {
+          await axios.patch(
+            `http://localhost:4000/api/designs/${currentDesign._id}`,{
+              designStatus: "AwaitingEngraving"
+            }
+          );
+        }
+
+        if(screenDetails.data.length > 0) {
+          await axios.patch(
+            `http://localhost:4000/api/designs/${currentDesign._id}`,{
+              designStatus: "BeingEngraved"
+            }
+          );
+        }
+
+        if(screenDetails.data.length === currentDesign.numberOfExposedScreens) {
+          await axios.patch(
+            `http://localhost:4000/api/designs/${currentDesign._id}`,{
+              designStatus: "EngravingCompleted"
+            }
+          );
+        }
+
+      } catch (error) {
+        console.error("Error fetching screen details:", error);
+      }
+    };
+
     getScreenDetails();
+    countFinishedScreens();
+
     setIsUpdating(false);
   }, [isUpdating]);
 
   const updateScreenExposedType = async (screenId, newExposedType) => {
     try {
       await axios.patch(`http://localhost:4000/api/screens/${screenId}`, {
-        // Updating screen exposedType with ewExposedType
         exposedType: newExposedType,
       });
     } catch (error) {
@@ -252,8 +293,7 @@ function DesignsEngraving() {
                           <ul role="list" className="-mx-2 space-y-1">
                             {navigation.map((item) => (
                               <li key={item.name}>
-                                <a
-                                  href={item.href}
+                                <button
                                   className={classNames(
                                     item.current
                                       ? "bg-gray-800 text-white"
@@ -266,7 +306,7 @@ function DesignsEngraving() {
                                     aria-hidden="true"
                                   />
                                   {item.name}
-                                </a>
+                                </button>
                               </li>
                             ))}
                           </ul>
@@ -342,7 +382,7 @@ function DesignsEngraving() {
                             item.current
                               ? "bg-gray-500 text-white"
                               : "text-gray-400 hover:text-white hover:bg-gray-700",
-                            "group flex gap-x-3 rounded-md p-2 text-sm leading-6 font-mono"
+                            "group flex gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold"
                           )}
                         >
                           <item.icon
@@ -432,18 +472,18 @@ function DesignsEngraving() {
               </form>
               <button
                 type="button"
-                className="inline-flex items-center justify-center mt-4 h-1/2 gap-x-1.5 rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+                className="inline-flex items-center gap-x-2 h-1/2 my-4 rounded-md bg-sky-900 px-3 py-2 text-md font-mono font-bold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
               >
-                <PlusIcon className="-ml-0.5 h-5 w-5" aria-hidden="true" />
-                New Design
+                {/* <PencilIcon className="-ml-0.5 h-5 w-5" aria-hidden="true" /> */}
+                Change
               </button>
-              <button
+              {/* <button               // Replace these buttons with save design details buttons
                 type="button"
                 className="inline-flex items-center justify-center mt-4 h-1/2 gap-x-1.5 rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
               >
                 <PlusIcon className="-ml-0.5 h-5 w-5" aria-hidden="true" />
                 Re-Expose
-              </button>
+              </button> */}
             </div>
           </div>
 
@@ -458,8 +498,8 @@ function DesignsEngraving() {
                       statIdx % 2 === 1
                         ? "sm:border-l"
                         : statIdx === 2
-                        ? "lg:border-l"
-                        : "",
+                          ? "lg:border-l"
+                          : "",
                       "border-t border-white/5 py-6 px-4 sm:px-6 lg:px-8"
                     )}
                   >
@@ -467,7 +507,7 @@ function DesignsEngraving() {
                       {stat.name}
                     </p>
                     <p className="mt-2 flex items-baseline gap-x-2">
-                      <span className="text-2xl font-semibold tracking-tight text-white">
+                      <span className="text-3xl font-semibold tracking-tight text-white">
                         {stat.value}
                       </span>
                       {stat.unit ? (
@@ -484,24 +524,24 @@ function DesignsEngraving() {
             {/* Activity list */}
             <div className="border-y border-white/10 bg-gray-900 pt-6 min-h-screen">
               <h2 className="px-4 text-md font-mono leading-7 text-green-400 sm:px-6 lg:px-8">
-                Latest Designs
+                Screen Details
               </h2>
               <table className="mt-6 w-full whitespace-nowrap text-left">
                 <colgroup>
-                  <col className="w-1/8 sm:w-1/12" />
+                  <col className="w-1/8 sm:w-1/4" />
                   <col className="lg:w-1/4" />
                   <col className="lg:w-1/5" />
                   <col className="lg:w-1/4" />
                   <col className="lg:w-1/6" />
                   <col className="lg:w-1/12" />
                 </colgroup>
-                <thead className="border-b border-white/10 text-sm leading-6 text-gray-400">
+                <thead className="border-b border-white/10 text-md leading-6 text-gray-400">
                   <tr>
                     <th
                       scope="col"
                       className="py-2 pl-4 pr-8 font-mono sm:pl-6 lg:pl-8"
                     >
-                      Design Number
+                      Pitch Number
                     </th>
                     <th
                       scope="col"
@@ -549,11 +589,10 @@ function DesignsEngraving() {
                             {screen.screenStatus === "AwaitingEngraving" ? (
                               <div>
                                 <span
-                                  className={`inline-flex items-center rounded-md px-2 py-1 text-sm font-medium ring-1 ring-inset ${
-                                    screen.exposedType === "New"
-                                      ? "bg-green-500/10 text-green-400 ring-green-500/20"
-                                      : "bg-blue-500/10 text-blue-400 ring-blue-500/20"
-                                  }`}
+                                  className={`inline-flex items-center rounded-md px-2 py-1 text-sm font-medium ring-1 ring-inset ${screen.exposedType === "New"
+                                    ? "bg-green-500/10 text-green-400 ring-green-500/20"
+                                    : "bg-blue-500/10 text-blue-400 ring-blue-500/20"
+                                    }`}
                                 >
                                   {screen.exposedType}
                                 </span>
@@ -567,19 +606,18 @@ function DesignsEngraving() {
                                     );
                                     setIsUpdating(true);
                                   }}
-                                  className={`inline-flex items-center focus:outline-none rounded hover:bg-sky-800 px-2 py-1 text-sm font-medium ring-1 ring-inset ${
-                                    screen.exposedType === "Use"
-                                      ? "bg-green-500/10 text-green-400 ring-green-500/20"
-                                      : "bg-blue-500/10 text-blue-400 ring-blue-500/20"
-                                  }`}
+                                  className={`inline-flex items-center focus:outline-none rounded hover:bg-sky-800 px-2 py-1 text-sm font-medium ring-1 ring-inset ${screen.exposedType === "Use"
+                                    ? "bg-green-500/10 text-green-400 ring-green-500/20"
+                                    : "bg-blue-500/10 text-blue-400 ring-blue-500/20"
+                                    }`}
                                 >
                                   {screen.exposedType === "New" ? "Use" : "New"}
                                 </button>
                               </div>
                             ) : (
-                              <span className="inline-flex items-center focus:outline-none rounded-md bg-gray-500/10 text-gray-200 ring-gray-500/20 px-2 py-1 text-md font-mono ring-2 ring-inset">
+                              <p className="truncate text-md font-mono leading-6 text-white">
                                 {screen.exposedType}
-                              </span>
+                              </p>
                             )}
                           </div>
                         </td>
@@ -622,12 +660,11 @@ function DesignsEngraving() {
                                         screenBrandAndMeshValue: newValue,
                                       }));
                                     }}
-                                    placeholder="Enter design number"
                                     className="p-1 w-full text-sm font-medium text-gray-100 bg-gray-800 border border-gray-300 focus:outline-indigo-500 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                                   />
                                 )
                               ) : (
-                                <p className="p-1 w-full text-sm text-center font-medium text-gray-100 bg-gray-800 border border-gray-300 focus:outline-indigo-500 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <p className="truncate text-md font-mono leading-6 text-white">
                                   {screen.screenBrandAndMesh}
                                 </p>
                               )}
@@ -653,7 +690,7 @@ function DesignsEngraving() {
                                   }}
                                 />
                               ) : (
-                                <p className="p-1 w-full text-sm text-center font-medium text-gray-100 bg-gray-800 border border-gray-300 focus:outline-indigo-500 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <p className="truncate text-md font-mono leading-6 text-white">
                                   {screen.completedDate}
                                 </p>
                               )}
@@ -681,7 +718,7 @@ function DesignsEngraving() {
                               <option value="Person-D">Person-D</option>
                             </select>
                           ) : (
-                            <p className="p-1 w-full text-sm text-center font-medium text-gray-100 bg-gray-800 border border-gray-300 focus:outline-indigo-500 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <p className="truncate text-md font-mono leading-6 text-white">
                               {screen.engraver}
                             </p>
                           )}
@@ -691,11 +728,11 @@ function DesignsEngraving() {
                             {screen.screenStatus === "AwaitingEngraving" ? (
                               <button
                                 type="button"
-                                className="inline-flex items-center justify-start gap-x-2 rounded-md bg-sky-900 px-3 py-2 text-md font-mono text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+                                className="inline-flex items-center justify-start gap-x-2 rounded-md bg-sky-900 px-3 py-2 text-md font-mono font-bold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
                                 onClick={() => {
                                   updateOtherScreenDetails(
                                     screen._id,
-                                    "AwaitingEndringFitting"
+                                    screen.exposedType === "New" ? "AwaitingEndringFitting" : "Use-Screen"
                                   );
                                   setIsUpdating(true);
                                 }}
@@ -709,7 +746,7 @@ function DesignsEngraving() {
                             ) : (
                               <button
                                 type="button"
-                                className="inline-flex items-center justify-start gap-x-2 rounded-md bg-gray-700 px-3 py-2 text-md font-mono text-white shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+                                className="inline-flex items-center justify-start gap-x-2 rounded-md bg-gray-700 px-3 py-2 text-md font-mono font-bold text-white shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
                                 onClick={() => {
                                   updateOtherScreenDetails(
                                     screen._id,

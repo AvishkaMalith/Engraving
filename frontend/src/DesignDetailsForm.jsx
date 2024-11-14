@@ -63,7 +63,8 @@ function DesignDetailsForm() {
               designNumber: formData.designNumber,
               pitchNumber: formData.designNumber + "-P" + (i+1),
               exposedType: "New",
-              screenStatus: "AwaitingEngraving"
+              screenStatus: "AwaitingEngraving",
+              screenWidth: formData.screenWidth
           });
         }
       }

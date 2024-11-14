@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Dialog, Transition } from "@headlessui/react";
 import {
   UserIcon,
@@ -10,20 +10,15 @@ import {
   SignalIcon,
   XMarkIcon,
   PlusIcon,
+  CheckIcon,
 } from "@heroicons/react/24/outline";
 
 import {
   Bars3Icon,
   MagnifyingGlassIcon,
   ArrowRightCircleIcon,
+  ClockIcon,
 } from "@heroicons/react/20/solid";
-
-import { MdPalette } from "react-icons/md";
-import { FiTool, FiSettings } from "react-icons/fi";
-import { GoLocation } from "react-icons/go";
-import { FaUsers} from "react-icons/fa";
-import { HiDocumentText } from "react-icons/hi";
-
 import axios from "axios";
 
 const teams = [
@@ -36,75 +31,111 @@ function classNames(...classes) {
   return classes.filter(Boolean).join(" ");
 }
 
-function Dashboard() {
+function ScreensLocation() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [awaitingEngravingDesigns, setAwaitingEngrvingDesigns] = useState([]);
-  const [numberOfNewDesigns, setNumberOfNewDesigns] = useState(0);
-  const [numberOfNewScreens, setNumberOfNewScreens] = useState(0);
-  const [numberOfReExposeScreens, setNumberOfReExposeScreens] = useState(0);
+
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [currentScreens, setCurrentScreens] = useState([]);
+  const [currentDesigns, setCurrentDesigns] = useState([]);
 
   const navigate = useNavigate();
 
   const navigation = [
-    { name: "Designs", icon: MdPalette, current: true, route: "/" },
-    { name: "Endring Fittings", icon: FiTool, current: false, route: "/ScreensEndringFitting" },
-    { name: "Screen Locations", icon: GoLocation, current: false, route: "/ScreensLocation" },
-    { name: "Design Details", icon: HiDocumentText, current: false, route: "/" },
-    { name: "Employees", icon: FaUsers, current: false, route: "/" },
-    { name: "Settings", icon: FiSettings, current: false, route: "/" },
+    { name: "Designs", icon: FolderIcon, current: false, route: "/" },
+    { name: "Endring Fittings", icon: ServerIcon, current: false, route: "/ScreensEndringFitting" },
+    { name: "Screen Locations", icon: SignalIcon, current: true, route: "/ScreensLocation" },
+    { name: "Storage", icon: GlobeAltIcon, current: false, route: "/" },
+    { name: "Employees", icon: UserIcon, current: false, route: "/" },
+    { name: "Settings", icon: Cog6ToothIcon, current: false, route: "/" },
   ];
 
+  const [updatedScreen, setUpdatedScreen] = useState({
+    endringFittedByValue: "",
+    screenStatusValue: "AwaitingEndringFitting",
+  });
+
   const stats = [
-    { name: "New Designs", value: numberOfNewDesigns },
-    { name: "New Screens", value: numberOfNewScreens },
-    { name: "Re-Expose Screens", value: numberOfReExposeScreens },
-    { name: "Total Screens", value: numberOfNewScreens + numberOfReExposeScreens }
+    {
+      statIdx: 1,
+      name: "Awaiting Location (designs)",
+      value: currentDesigns.filter((design) => design.designStatus === "AwaitingLocation").length,
+    },
+    {
+      statIdx: 2,
+      name: "Awaiting Location (screens)",
+      value: currentScreens.filter((screen) => screen.screenStatus === "AwaitingLocation").length,
+    },
+    {
+      statIdx: 3,
+      name: "Remove Location (screens)",
+      value: "kdmvv",
+    },
+    {
+      statIdx: 4,
+      name: "Remove Endring (screens)",
+      value: currentScreens.filter((screen) => screen.screenStatus === "RemovedLocation").length,
+    }
   ];
 
   useEffect(() => {
-    const getAwaitingEngravingScreens = async () => {
+    const getScreenDetails = async () => {
       try {
-        // Fetch only screens with "AwaitingEngraving" status
-        const screenResults = await axios.get(
-          "http://localhost:4000/api/screens/search",
+        const screenDetails = await axios.get(
+          `http://localhost:4000/api/screens/search?`,
           {
-            params: { screenStatus: "AwaitingEngraving" }
+            params: {
+              screenStatus: ["AwaitingLocation", "InLocation", "AwaitingEndringRemoving"]
+            },
           }
         );
 
-        setNumberOfNewScreens(screenResults.data.length);
-
-        const reExposeScreens = screenResults.data.filter(
-          (screen) => screen.exposedType === "Re-Expose"
-        );
-        setNumberOfReExposeScreens(reExposeScreens.length);
-
+        setCurrentScreens(screenDetails.data);
       } catch (error) {
-        console.error("Error fetching data", error);
+        console.error("Error fetching screen details:", error);
       }
     };
 
-    const getAwaitingEngravingDesigns = async () => {
+    const getDesignDetails = async () => {
       try {
-        // Fetch only designs with "AwaitingEngraving" status
-        const designResults = await axios.get(
-          "http://localhost:4000/api/designs/search",
+        const designDetails = await axios.get(
+          `http://localhost:4000/api/designs/search?`,
           {
-            params: { designStatus: ["AwaitingEngraving", "BeingEngraved"] }
+            params: {
+              designStatus: ["AwaitingLocation", "InLocation", "AwaitingEndringRemoving"]
+            },
           }
         );
 
-        setAwaitingEngrvingDesigns(designResults.data);
-        setNumberOfNewDesigns(designResults.data.length);
-
+        setCurrentDesigns(designDetails.data);
       } catch (error) {
-        console.error("Error fetching data", error);
+        console.error("Error fetching screen details:", error);
       }
     };
 
-    getAwaitingEngravingDesigns();
-    getAwaitingEngravingScreens();
-  }, []);
+    getDesignDetails();
+    getScreenDetails();
+
+    setIsUpdating(false);
+  }, [isUpdating]);
+
+  const updateScreenDetails = async (screenId, screenStatusValue) => {
+    try {
+      await axios.patch(`http://localhost:4000/api/screens/${screenId}`, {
+        // Updating screen details with their values
+        endringFittedBy: updatedScreen.endringFittedByValue,
+        screenStatus: screenStatusValue,
+      });
+
+      setUpdatedScreen({
+        endringFittedByValue: "",
+        screenStatusValue: "AwaitingEndringFitting",
+      });
+
+      setIsUpdating(false);
+    } catch (error) {
+      console.error("Error updating screen details:", error);
+    }
+  };
 
   return (
     <>
@@ -179,9 +210,9 @@ function Dashboard() {
                                 <button
                                   className={classNames(
                                     item.current
-                                      ? "bg-gray-600 text-white"
+                                      ? "bg-gray-800 text-white"
                                       : "text-gray-400 hover:text-white hover:bg-gray-800",
-                                    "group flex gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold w-full"
+                                    "group flex gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold"
                                   )}
                                   onClick={() => navigate(item.route)}
                                 >
@@ -279,7 +310,7 @@ function Dashboard() {
                     ))}
                   </ul>
                 </li>
-                <li>
+                {/* <li>
                   <div className="text-xs font-semibold leading-6 text-gray-400">
                     Your teams
                   </div>
@@ -303,7 +334,7 @@ function Dashboard() {
                       </li>
                     ))}
                   </ul>
-                </li>
+                </li> */}
                 <li className="-mx-6 mt-auto">
                   <a
                     href="#"
@@ -356,15 +387,14 @@ function Dashboard() {
               </form>
               <button
                 type="button"
-                onClick={() => navigate("/DesignDetailsForm")}
-                className="inline-flex items-center justify-center mt-4 h-1/2 gap-x-1.5 rounded-md bg-sky-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+                className="inline-flex items-center justify-center mt-4 h-1/2 gap-x-1.5 rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
               >
                 <PlusIcon className="-ml-0.5 h-5 w-5" aria-hidden="true" />
                 New Design
               </button>
               <button
                 type="button"
-                className="inline-flex items-center justify-center mt-4 h-1/2 gap-x-1.5 rounded-md bg-red-700 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+                className="inline-flex items-center justify-center mt-4 h-1/2 gap-x-1.5 rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
               >
                 <PlusIcon className="-ml-0.5 h-5 w-5" aria-hidden="true" />
                 Re-Expose
@@ -374,51 +404,6 @@ function Dashboard() {
 
           <main>
             <header>
-              {/* Secondary navigation */}
-              {/* <nav className="flex overflow-x-auto border-b border-white/10 py-4">
-                <ul
-                  role="list"
-                  className="flex min-w-full flex-none gap-x-6 px-4 text-sm font-semibold leading-6 text-gray-400 sm:px-6 lg:px-8"
-                >
-                  {secondaryNavigation.map((item) => (
-                    <li key={item.name}>
-                      <a
-                        href={item.href}
-                        className={item.current ? "text-indigo-400" : ""}
-                      >
-                        {item.name}
-                      </a>
-                    </li>
-                  ))}
-                </ul>
-              </nav> */}
-
-              {/* Heading */}
-              {/* <div className="flex flex-col items-start justify-between gap-x-8 gap-y-4 bg-gray-900 px-4 py-4 sm:flex-row sm:items-center sm:px-6 lg:px-8">
-                <div>
-                  <div className="flex items-center gap-x-3">
-                    <div className="flex-none rounded-full bg-green-400/10 p-1 text-green-400">
-                      <div className="h-2 w-2 rounded-full bg-current" />
-                    </div>
-                    <h1 className="flex gap-x-3 text-base leading-7">
-                      <span className="font-semibold text-white">
-                        Planetaria
-                      </span>
-                      <span className="text-gray-600">/</span>
-                      <span className="font-semibold text-white">
-                        mobile-api
-                      </span>
-                    </h1>
-                  </div>
-                  <p className="mt-2 text-xs leading-6 text-gray-400">
-                    Deploys from GitHub via main branch
-                  </p>
-                </div>
-                <div className="order-first flex-none rounded-full bg-indigo-400/10 px-2 py-1 text-xs font-medium text-indigo-400 ring-1 ring-inset ring-indigo-400/30 sm:order-none">
-                  Production
-                </div>
-              </div> */}
-
               {/* Stats */}
               <div className="grid grid-cols-1 bg-gray-900 sm:grid-cols-2 lg:grid-cols-4">
                 {stats.map((stat, statIdx) => (
@@ -437,7 +422,7 @@ function Dashboard() {
                       {stat.name}
                     </p>
                     <p className="mt-2 flex items-baseline gap-x-2">
-                      <span className="text-3xl font-semibold tracking-tight text-white">
+                      <span className="text-2xl font-semibold tracking-tight text-white">
                         {stat.value}
                       </span>
                       {stat.unit ? (
@@ -454,19 +439,18 @@ function Dashboard() {
             {/* Activity list */}
             <div className="border-y border-white/10 bg-gray-900 pt-6 min-h-screen">
               <h2 className="px-4 text-md font-mono leading-7 text-green-400 sm:px-6 lg:px-8">
-                Latest Designs
+                Designs Awaiting Locations
               </h2>
               <table className="mt-6 w-full whitespace-nowrap text-left">
                 <colgroup>
-                  <col className="w-1/7 sm:w-2/12" />
-                  <col className="lg:w-1/7" />
-                  <col className="lg:w-1/7" />
-                  <col className="lg:w-1/7" />
-                  <col className="lg:w-1/5" />
-                  <col className="lg:w-1/7" />
-                  <col className="lg:w-1/7" />
+                  <col className="w-1/5 sm:w-2/12" />
+                  <col className="lg:w-1/6" />
+                  <col className="lg:w-1/6" />
+                  <col className="lg:w-1/6" />
+                  <col className="lg:w-1/6" />
+                  <col className="lg:w-1/6" />
                 </colgroup>
-                <thead className="border-b border-white/10 text-sm leading-6 text-gray-400">
+                <thead className="border-b border-white/10 text-md leading-6 text-gray-400">
                   <tr>
                     <th
                       scope="col"
@@ -478,17 +462,11 @@ function Dashboard() {
                       scope="col"
                       className="hidden py-2 pl-0 pr-8 font-mono sm:table-cell"
                     >
-                      Status
-                    </th>
-                    <th
-                      scope="col"
-                      className="md:hidden py-2 pl-0 pr-8 font-mono sm:table-cell lg:table-cell"
-                    >
                       Colors #
                     </th>
                     <th
                       scope="col"
-                      className="py-2 pl-0 pr-4 text-right font-mono sm:pr-8 sm:text-left lg:pr-20"
+                      className="md:hidden py-2 pl-0 pr-8 font-mono sm:table-cell lg:table-cell"
                     >
                       Screens #
                     </th>
@@ -496,102 +474,122 @@ function Dashboard() {
                       scope="col"
                       className="hidden py-2 pl-0 pr-8 font-mono md:table-cell lg:pr-20"
                     >
-                      Design Name
+                      Suggested Location
                     </th>
                     <th
                       scope="col"
                       className="hidden py-2 pl-0 pr-8 font-mono md:table-cell lg:pr-20"
                     >
-                      Customer
+                      Actual Location
                     </th>
                     <th
                       scope="col"
-                      className="hidden py-2 pl-0 pr-4 text-right font-mono sm:table-cell sm:pr-6 lg:pr-8"
+                      className="hidden py-2 pl-0 pr-4 text-right font-mono sm:table-cell sm:pr-4 lg:pr-8"
                     ></th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5">
-                  {awaitingEngravingDesigns &&
-                    awaitingEngravingDesigns.map((design) => (
+                  {currentDesigns &&
+                    currentDesigns.map((design) => (
                       <tr key={design._id}>
                         <td className="py-4 pl-4 pr-8 sm:pl-6 lg:pl-8">
                           <div className="flex items-center gap-x-4">
-                            {/* <img
-                            src={design.user.imageUrl}
-                            alt=""
-                            className="h-8 w-8 rounded-full bg-gray-800"
-                          /> */}
-                            <div className="truncate text-lg font-mono leading-6 text-white">
+                            <div className="truncate text-md font-mono leading-6 text-white">
                               {design.designNumber}
                             </div>
                           </div>
                         </td>
                         <td className="hidden py-4 pl-0 pr-4 sm:table-cell sm:pr-8">
                           <div className="flex gap-x-3">
-                            {design.exposedStatus === "New" ? (
-                              <span className="inline-flex items-center rounded-md bg-green-500/10 px-2 py-1 text-sm font-medium text-green-400 ring-1 ring-inset ring-green-500/20">
-                                {design.exposedStatus}
-                              </span>
-                            ) : (
-                              <span className="inline-flex items-center rounded-md bg-red-500/10 px-2 py-1 text-sm font-medium text-red-400 ring-1 ring-inset ring-red-500/20">
-                                {design.exposedStatus}
-                              </span>
-                            )}
+                            <p className="truncate text-md font-mono leading-6 text-white">
+                              {design.numberOfColors}
+                            </p>
                           </div>
                         </td>
-                        <td className="py-4 pl-0 pr-4 sm:table-cell md:hidden lg:table-cell sm:pr-8">
+                        <td className="py-4 pl-0 pr-2 sm:table-cell md:hidden lg:table-cell sm:pr-2">
                           <div className="flex gap-x-3">
                             <div className="font-mono text-lg leading-6 text-white">
-                              {design.numberOfColors}
+                              <p className="truncate text-md font-mono leading-6 text-white">
+                                {design.numberOfExposedScreens}
+                              </p>
                             </div>
-                            {/* <span className="inline-flex items-center rounded-md bg-gray-400/10 px-2 py-1 text-xs font-medium text-gray-400 ring-1 ring-inset ring-gray-400/20">
-                            {design.numberOfExposedScreens}
-                          </span> */}
                           </div>
                         </td>
                         <td className="py-4 pl-0 pr-4 text-sm leading-6 sm:pr-8 lg:pr-20">
                           <div className="flex items-center justify-end gap-x-2 sm:justify-start">
-                            {/* <time
-                            className="text-gray-400 sm:hidden"
-                            dateTime={design.receivedDate}
-                          >
-                            {design.receivedDate}
-                          </time>
-                          <div
-                            className={classNames(
-                              statuses[design.status],
-                              "flex-none rounded-full p-1"
-                            )}
-                          >
-                            <div className="h-1.5 w-1.5 rounded-full bg-current" />
-                          </div> */}
                             <div className="font-mono text-lg leading-6 text-white">
-                              {design.numberOfExposedScreens}
+                              <p className="truncate text-md font-mono leading-6 text-white">
+                                
+                              </p>
                             </div>
                           </div>
                         </td>
-                        <td className="hidden py-4 pl-0 pr-8 text-lg leading-6 font-mono text-white md:table-cell lg:pr-10">
-                          {design.designName}
-                        </td>
-                        <td className="hidden py-4 pl-0 pr-8 text-lg leading-6 font-mono text-white md:table-cell lg:pr-10">
-                          {design.customer}
+                        <td className="hidden py-4 pl-0 pr-8 text-lg leading-6 font-mono text-white md:table-cell lg:pr-18">
+                          {design.designStatus === "AwaitingLocation" ? (
+                            <select
+                              onChange={(event) => {
+                                const newValue = event.target.value;
+
+                                setUpdatedScreen((prevDetails) => ({
+                                  ...prevDetails,
+                                  endringFittedByValue: newValue,
+                                }));
+                              }}
+                              value={updatedScreen.engraverValue}
+                              className="p-1 w-3/4 text-sm font-medium text-gray-100 bg-gray-800 border border-gray-300 focus:outline-indigo-500 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            >
+                              <option value=""></option>
+                              <option className="text-center" value="A01-L01">A01-L01</option>
+                              <option className="text-center" value="A01-L02">A01-L02</option>
+                              <option className="text-center" value="A01-L03">A01-L03</option>
+                              <option className="text-center" value="A01-L04">A01-L04</option>
+                            </select>
+                          ) : (
+                            <p className="truncate text-md font-mono leading-6 text-white">
+                              {design.numberOfColors}
+                            </p>
+                          )}
                         </td>
                         <td className="hidden py-4 pl-0 pr-8 text-sm leading-6 text-white md:table-cell md:pr-12 sm:pr-20">
                           <div className="flex items-start justify-start">
-                            <button
-                              type="button"
-                              className={`${design.designStatus === `AwaitingEngraving` ? (`focus-visible:outline-indigo-600 text-white bg-indigo-600 hover:bg-indigo-500`)
-                                : (`focus-visible:outline-orange-600 text-indigo-900 bg-yellow-500 hover:bg-yellow-600`)
-                                }
-                                inline-flex items-center justify-start gap-x-2 rounded-md  px-3 py-2 text-md font-semibold shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2`}
-                              onClick={() => navigate(`/DesignsEngraving`, { state: { design } })}
-                            >
-                              {design.designStatus === `AwaitingEngraving` ? "Start Engraving" : "Continue Engraving"}
-                              <ArrowRightCircleIcon
-                                className="-ml-0.5 h-5 w-5 text-green-500"
-                                aria-hidden="true"
-                              />
-                            </button>
+                            {design.designStatus ===
+                              "AwaitingLocation" ? (
+                              <button
+                                type="button"
+                                className="inline-flex items-center justify-start gap-x-2 rounded-md bg-sky-900 px-3 py-2 text-md font-mono text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+                                onClick={() => {
+                                  updateScreenDetails(
+                                    design._id,
+                                    "AwaitingLocation"
+                                  );
+                                  setIsUpdating(true);
+                                }}
+                              >
+                                Pending
+                                <ClockIcon
+                                  className="-ml-0.5 h-5 w-5 text-green-500"
+                                  aria-hidden="true"
+                                />
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                className="inline-flex items-center justify-start gap-x-2 rounded-md bg-gray-700 px-3 py-2 text-md font-mono text-white shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+                                onClick={() => {
+                                  updateScreenDetails(
+                                    design._id,
+                                    "AwaitingEndringFitting"
+                                  );
+                                  setIsUpdating(true);
+                                }}
+                              >
+                                Completed
+                                <CheckIcon
+                                  className="-ml-0.5 h-5 w-5 text-green-500"
+                                  aria-hidden="true"
+                                />
+                              </button>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -606,4 +604,4 @@ function Dashboard() {
   );
 }
 
-export default Dashboard;
+export default ScreensLocation;

@@ -35,6 +35,7 @@ const createScreen = async (req, res) => {
     pitchNumber,
     exposedType,
     completedDate,
+    screenWidth,
     engraver,
     endringFittedBy,
     screenBrandAndMesh,
@@ -51,6 +52,7 @@ const createScreen = async (req, res) => {
       pitchNumber,
       exposedType,
       completedDate,
+      screenWidth,
       engraver,
       endringFittedBy,
       screenBrandAndMesh,
@@ -87,7 +89,7 @@ const searchScreens = async (req, res) => {
 
     // If a query term is provided, add regex search on designName
     if(query){
-      searchCriteria.designNumber = parseInt(query, 10);
+      searchCriteria.designNumber = query;
     }
     
     // Find screens that match the criteria

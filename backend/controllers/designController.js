@@ -1,5 +1,6 @@
 // Importing the Design Model
 const designModel = require("../models/designModel");
+const mongoose = require("mongoose");
 
 // Defining a get request to to retrieve all the designs
 const getDesigns = async (req, res) => {
