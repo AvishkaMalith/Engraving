@@ -4,6 +4,7 @@ import DesignDetailsForm from './DesignDetailsForm';
 import DesignsEngraving from "./DesignsEngraving";
 import ScreensEndringFitting from "./ScreensEndringFitting";
 import ScreensLocation from "./ScreensLocation";
+import ScreenWarehouse from './ScreenWarehouse';
 
 function App() {
  
@@ -15,6 +16,7 @@ function App() {
         <Route path="/DesignsEngraving" element={<DesignsEngraving />} />
         <Route path="/ScreensEndringFitting" element={<ScreensEndringFitting />} />
         <Route path="/ScreensLocation" element={<ScreensLocation />} />
+        <Route path="/ScreenWarehouse" element={<ScreenWarehouse />} />
       </Routes>
     </Router>
   );

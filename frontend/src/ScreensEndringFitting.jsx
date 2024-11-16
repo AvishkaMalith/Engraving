@@ -13,6 +13,12 @@ import {
   CheckIcon,
 } from "@heroicons/react/24/outline";
 
+import { MdPalette } from "react-icons/md";
+import { FiTool, FiSettings } from "react-icons/fi";
+import { GoLocation } from "react-icons/go";
+import { FaUsers, FaDatabase} from "react-icons/fa";
+import { HiDocumentText } from "react-icons/hi";
+
 import {
   Bars3Icon,
   MagnifyingGlassIcon,
@@ -41,12 +47,13 @@ function ScreensEndringFitting() {
   const navigate = useNavigate();
 
   const navigation = [
-    { name: "Designs", icon: FolderIcon, current: false, route: "/" },
-    { name: "Endring Fittings", icon: ServerIcon, current: true, route: "/ScreensEndringFitting" },
-    { name: "Screen Locations", icon: SignalIcon, current: false, route: "/" },
-    { name: "Storage", icon: GlobeAltIcon, current: false, route: "/" },
-    { name: "Employees", icon: UserIcon, current: false, route: "/" },
-    { name: "Settings", icon: Cog6ToothIcon, current: false, route: "/" },
+    { name: "Designs", icon: MdPalette, current: false, route: "/" },
+    { name: "Endring Fittings", icon: FiTool, current: true, route: "/ScreensEndringFitting" },
+    { name: "Screen Locations", icon: GoLocation, current: false, route: "/ScreensLocation" },
+    { name: "Screen Warehouse", icon: FaDatabase, current: false, route: "/ScreenWarehouse" },
+    { name: "Design Details", icon: HiDocumentText, current: false, route: "/" },
+    { name: "Employees", icon: FaUsers, current: false, route: "/" },
+    { name: "Settings", icon: FiSettings, current: false, route: "/" },
   ];
 
   const [updatedScreen, setUpdatedScreen] = useState({

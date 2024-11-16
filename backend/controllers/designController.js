@@ -1,5 +1,7 @@
 // Importing the Design Model
 const designModel = require("../models/designModel");
+
+// Importing required packages
 const mongoose = require("mongoose");
 
 // Defining a get request to to retrieve all the designs
@@ -8,19 +10,18 @@ const getDesigns = async (req, res) => {
     const designs = await designModel.find({});
     res.json(designs);
   } catch (error) {
-    res.status(500).json({ message: "Error fetching Designs", error })
+    res.status(500).json({ message: "Error fetching Designs", error });
   }
 };
 
 // Defining a get request to retrieve a specific design
 const getDesign = async (req, res) => {
-  
-  const designId = req.params.id;
-  
+  const designObjectId = req.params.id;
+
   try {
-    const design = await designModel.findById(designId);
-    if(!design){
-      return res.status(404).json({ message : "Design not found" });
+    const design = await designModel.findById(designObjectId);
+    if (!design) {
+      return res.status(404).json({ message: "Design not found" });
     }
     res.json(design);
   } catch (error) {
@@ -43,13 +44,14 @@ const createDesign = async (req, res) => {
     screenWidth,
     dpi,
     drop,
+    screens,
     specialInstructions,
     location,
-    designStatus
+    designStatus,
   } = req.body;
 
   try {
-    const newDesign = await designModel.create({
+    const newDesign = await designModel.insertMany({
       designNumber,
       exposedStatus,
       orderType,
@@ -62,18 +64,22 @@ const createDesign = async (req, res) => {
       screenWidth,
       dpi,
       drop,
+      screens,
       specialInstructions,
       location,
-      designStatus
+      designStatus,
     });
 
     res.status(200).json({
       message: "New design added successfully",
-      body: newDesign
+      body: newDesign,
     });
+    console.log(newDesign);
   } catch (error) {
     console.error("Error while adding a new design", error);
-    res.status(500).json({ message: "An error occured while adding a new design" });
+    res
+      .status(500)
+      .json({ message: "An error occured while adding a new design" });
   }
 };
 
@@ -87,54 +93,57 @@ const searchDesigns = async (req, res) => {
     const searchCriteria = {};
 
     // Only add designStatus to criteria if provided
-    if(designStatus){
+    if (designStatus) {
       searchCriteria.designStatus = designStatus;
     }
 
     // If a query term is provided, add regex search on designName
-    if(query){
+    if (query) {
       searchCriteria.designNumber = query;
     }
-    
+
     // Find screens that match the criteria
     const designs = await designModel.find(searchCriteria);
 
     res.json(designs);
   } catch (error) {
-    console.error('Error fetching designs:', error);
-    res.status(500).json({ message: 'Error occurred during search', error }); 
+    console.error("Error fetching designs:", error);
+    res.status(500).json({ message: "Error occurred during search", error });
   }
-}
+};
 
 // Defining a delete request to delete a specific design
 const deleteDesign = async (req, res) => {
   const { id } = req.params;
-  
-  const design = await designModel.findOneAndDelete({ _id : id });
 
-  if(!design){
-    return res.status(400).json({ error : 'No such design found'});
+  const design = await designModel.findOneAndDelete({ _id: id });
+
+  if (!design) {
+    return res.status(400).json({ error: "No such design found" });
   }
-}
+};
 
 // Declaring a patch request to update details of an existing design
 const updateDesign = async (req, res) => {
   const { id } = req.params;
-  
-  if(!mongoose.Types.ObjectId.isValid(id)){
-      return res.status(404).json({ error : 'No such design found'});
+
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    return res.status(404).json({ error: "No such design found" });
   }
 
-  const design = await designModel.findOneAndUpdate({ _id : id }, {
-      ...req.body
-  });
+  const design = await designModel.findOneAndUpdate(
+    { _id: id },
+    {
+      ...req.body,
+    }
+  );
 
-  if(!design){
-      return res.status(400).json({ error : 'No such design found'});
+  if (!design) {
+    return res.status(400).json({ error: "No such design found" });
   }
 
   res.status(200).json(design);
-}
+};
 
 module.exports = {
   getDesigns,
@@ -142,5 +151,5 @@ module.exports = {
   searchDesigns,
   createDesign,
   updateDesign,
-  deleteDesign
+  deleteDesign,
 };

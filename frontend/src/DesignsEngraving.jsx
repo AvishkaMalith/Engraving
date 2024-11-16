@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useState } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Dialog, Transition } from "@headlessui/react";
 import {
   UserIcon,
@@ -14,6 +14,12 @@ import {
   PencilIcon,
 } from "@heroicons/react/24/outline";
 
+import { MdPalette } from "react-icons/md";
+import { FiTool, FiSettings } from "react-icons/fi";
+import { GoLocation } from "react-icons/go";
+import { FaUsers, FaDatabase } from "react-icons/fa";
+import { HiDocumentText } from "react-icons/hi";
+
 import {
   Bars3Icon,
   MagnifyingGlassIcon,
@@ -21,15 +27,6 @@ import {
   ClockIcon,
 } from "@heroicons/react/20/solid";
 import axios from "axios";
-
-const navigation = [
-  { name: "Designs", href: "#", icon: FolderIcon, current: true },
-  { name: "Endring Fittings", href: "#", icon: ServerIcon, current: false },
-  { name: "Screen Locations", href: "#", icon: SignalIcon, current: false },
-  { name: "Storage", href: "#", icon: GlobeAltIcon, current: false },
-  { name: "Employees", href: "#", icon: UserIcon, current: false },
-  { name: "Settings", href: "#", icon: Cog6ToothIcon, current: false },
-];
 
 const teams = [
   { id: 1, name: "Planetaria", href: "#", initial: "P", current: false },
@@ -74,6 +71,18 @@ function DesignsEngraving() {
     engraverValue: "",
     screenStatusValue: "AwaitingEndringFitting",
   });
+
+  const navigate = useNavigate();
+
+  const navigation = [
+    { name: "Designs", icon: MdPalette, current: true, route: "/" },
+    { name: "Endring Fittings", icon: FiTool, current: false, route: "/ScreensEndringFitting" },
+    { name: "Screen Locations", icon: GoLocation, current: false, route: "/ScreensLocation" },
+    { name: "Screen Warehouse", icon: FaDatabase, current: false, route: "/ScreenWarehouse" },
+    { name: "Design Details", icon: HiDocumentText, current: false, route: "/" },
+    { name: "Employees", icon: FaUsers, current: false, route: "/" },
+    { name: "Settings", icon: FiSettings, current: false, route: "/" },
+  ];
 
   // Receiving the state of design from the "Dashboard.jsx"
   const location = useLocation();
@@ -136,56 +145,57 @@ function DesignsEngraving() {
     const getScreenDetails = async () => {
       try {
         const screenDetails = await axios.get(
-          `http://localhost:4000/api/screens/search?query=${currentDesign.designNumber}`
+          `http://localhost:4000/api/designs/search?query=${currentDesign.designNumber}`
         );
 
-        setCurrentScreens(screenDetails.data);
+        setCurrentScreens(screenDetails.data[0].screens);
+        
       } catch (error) {
         console.error("Error fetching screen details:", error);
       }
     };
 
-    const countFinishedScreens = async () => {
-      try {
-        const screenDetails = await axios.get(
-          `http://localhost:4000/api/screens/search?query=${currentDesign.designNumber}`, {
-          params: {
-            screenStatus: "AwaitingEndringFitting"
-          }
-        }
-        );
+    // const countFinishedScreens = async () => {
+    //   try {
+    //     const screenDetails = await axios.get(
+    //       `http://localhost:4000/api/screens/search?query=${currentDesign.designNumber}`, {
+    //       params: {
+    //         screenStatus: "AwaitingEndringFitting"
+    //       }
+    //     }
+    //     );
 
-        if(screenDetails.data.length === 0) {
-          await axios.patch(
-            `http://localhost:4000/api/designs/${currentDesign._id}`,{
-              designStatus: "AwaitingEngraving"
-            }
-          );
-        }
+    //     if (screenDetails.data.length === 0) {
+    //       await axios.patch(
+    //         `http://localhost:4000/api/designs/${currentDesign._id}`, {
+    //         designStatus: "AwaitingEngraving"
+    //       }
+    //       );
+    //     }
 
-        if(screenDetails.data.length > 0) {
-          await axios.patch(
-            `http://localhost:4000/api/designs/${currentDesign._id}`,{
-              designStatus: "BeingEngraved"
-            }
-          );
-        }
+    //     if (screenDetails.data.length > 0) {
+    //       await axios.patch(
+    //         `http://localhost:4000/api/designs/${currentDesign._id}`, {
+    //         designStatus: "BeingEngraved"
+    //       }
+    //       );
+    //     }
 
-        if(screenDetails.data.length === currentDesign.numberOfExposedScreens) {
-          await axios.patch(
-            `http://localhost:4000/api/designs/${currentDesign._id}`,{
-              designStatus: "EngravingCompleted"
-            }
-          );
-        }
+    //     if (screenDetails.data.length === currentDesign.numberOfExposedScreens) {
+    //       await axios.patch(
+    //         `http://localhost:4000/api/designs/${currentDesign._id}`, {
+    //         designStatus: "EngravingCompleted"
+    //       }
+    //       );
+    //     }
 
-      } catch (error) {
-        console.error("Error fetching screen details:", error);
-      }
-    };
+    //   } catch (error) {
+    //     console.error("Error fetching screen details:", error);
+    //   }
+    // };
 
     getScreenDetails();
-    countFinishedScreens();
+    // countFinishedScreens();
 
     setIsUpdating(false);
   }, [isUpdating]);
@@ -300,6 +310,7 @@ function DesignsEngraving() {
                                       : "text-gray-400 hover:text-white hover:bg-gray-800",
                                     "group flex gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold"
                                   )}
+                                  onClick={() => navigate(item.route)}
                                 >
                                   <item.icon
                                     className="h-6 w-6 shrink-0"
@@ -307,31 +318,6 @@ function DesignsEngraving() {
                                   />
                                   {item.name}
                                 </button>
-                              </li>
-                            ))}
-                          </ul>
-                        </li>
-                        <li>
-                          <div className="text-xs font-semibold leading-6 text-gray-400">
-                            Your teams
-                          </div>
-                          <ul role="list" className="-mx-2 mt-2 space-y-1">
-                            {teams.map((team) => (
-                              <li key={team.name}>
-                                <a
-                                  href={team.href}
-                                  className={classNames(
-                                    team.current
-                                      ? "bg-gray-800 text-white"
-                                      : "text-gray-400 hover:text-white hover:bg-gray-800",
-                                    "group flex gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold"
-                                  )}
-                                >
-                                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border border-gray-700 bg-gray-800 text-[0.625rem] font-medium text-gray-400 group-hover:text-white">
-                                    {team.initial}
-                                  </span>
-                                  <span className="truncate">{team.name}</span>
-                                </a>
                               </li>
                             ))}
                           </ul>
@@ -376,46 +362,21 @@ function DesignsEngraving() {
                   <ul role="list" className="-mx-2 space-y-1">
                     {navigation.map((item) => (
                       <li key={item.name}>
-                        <a
-                          href={item.href}
+                        <button
                           className={classNames(
                             item.current
-                              ? "bg-gray-500 text-white"
-                              : "text-gray-400 hover:text-white hover:bg-gray-700",
+                              ? "bg-gray-800 text-white"
+                              : "text-gray-400 hover:text-white hover:bg-gray-800",
                             "group flex gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold"
                           )}
+                          onClick={() => navigate(item.route)}
                         >
                           <item.icon
                             className="h-6 w-6 shrink-0"
                             aria-hidden="true"
                           />
                           {item.name}
-                        </a>
-                      </li>
-                    ))}
-                  </ul>
-                </li>
-                <li>
-                  <div className="text-xs font-semibold leading-6 text-gray-400">
-                    Your teams
-                  </div>
-                  <ul role="list" className="-mx-2 mt-2 space-y-1">
-                    {teams.map((team) => (
-                      <li key={team.name}>
-                        <a
-                          href={team.href}
-                          className={classNames(
-                            team.current
-                              ? "bg-gray-800 text-white"
-                              : "text-gray-400 hover:text-white hover:bg-gray-800",
-                            "group flex gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold"
-                          )}
-                        >
-                          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border border-gray-700 bg-gray-800 text-[0.625rem] font-medium text-gray-400 group-hover:text-white">
-                            {team.initial}
-                          </span>
-                          <span className="truncate">{team.name}</span>
-                        </a>
+                        </button>
                       </li>
                     ))}
                   </ul>
