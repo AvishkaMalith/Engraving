@@ -1,28 +1,21 @@
 import { Fragment, useEffect, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { Dialog, Transition } from "@headlessui/react";
 import {
-  UserIcon,
-  Cog6ToothIcon,
-  FolderIcon,
-  GlobeAltIcon,
-  ServerIcon,
-  SignalIcon,
   XMarkIcon,
   PlusIcon,
-  CheckIcon,
+  CheckIcon
 } from "@heroicons/react/24/outline";
 
 import { MdPalette } from "react-icons/md";
 import { FiTool, FiSettings } from "react-icons/fi";
 import { GoLocation } from "react-icons/go";
-import { FaUsers, FaDatabase} from "react-icons/fa";
+import { FaUsers, FaDatabase } from "react-icons/fa";
 import { HiDocumentText } from "react-icons/hi";
 
 import {
   Bars3Icon,
   MagnifyingGlassIcon,
-  ArrowRightCircleIcon,
   ClockIcon,
 } from "@heroicons/react/20/solid";
 import axios from "axios";
@@ -41,8 +34,8 @@ function ScreensEndringFitting() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const [isUpdating, setIsUpdating] = useState(false);
-  const [currentScreens, setCurrentScreens] = useState([]);
-  const [updateDesignNumber, setUpdateDesignNumber] = useState(0);
+  const [awaitingEndringFittingScreens, setAwaitingEndringFittingScreens] = useState([]);
+  const [currentDesignId, setCurrentDesignId] = useState([]);
 
   const navigate = useNavigate();
 
@@ -64,61 +57,60 @@ function ScreensEndringFitting() {
   const stats = [
     {
       statIdx: 1,
-      name: "Endring Fitting",
-      value: currentScreens.filter((screen) => screen.screenStatus === "AwaitingEndringFitting").length,
+      name: "Designs #",
+      value: awaitingEndringFittingScreens.length,
+    },
+    {
+      statIdx: 2,
+      name: "Screens #",
+      value: awaitingEndringFittingScreens.flatMap((design) => design.screens).filter((screen) => screen.screenStatus === "AwaitingEndringFitting").length
     },
   ];
 
   useEffect(() => {
-    const getScreenDetails = async () => {
+    const getAwaitingEndringFittingDesigns = async () => {
       try {
-        const screenDetails = await axios.get(
-          `http://localhost:4000/api/screens/search?`,
+        const designDetails = await axios.get(
+          `http://localhost:4000/api/designs/search?`,
           {
             params: {
-              screenStatus: ["AwaitingEndringFitting", "AwaitingLocation"],
+              designStatus: ["BeingEngraved" ,"EngravingCompleted"]
             },
           }
         );
 
-        setCurrentScreens(screenDetails.data);
+        setAwaitingEndringFittingScreens(designDetails.data);
       } catch (error) {
         console.error("Error fetching screen details:", error);
       }
     };
 
-    const updateDesignStatus = async (screenDesignNumber) => {
+    const updateDesignStatusAfterEndringFitting = async (designObjectId) => {
       try {
-        const designDetails = await axios.get(`http://localhost:4000/api/designs/search?query=${screenDesignNumber}`);
-
-        const screensEndringFittingDetails = await axios.get(`http://localhost:4000/api/screens/search?query=${screenDesignNumber}`,
-          {
-            params: {
-              screenStatus: "AwaitingLocation"
+        const designDetails = await axios.get(`http://localhost:4000/api/designs/${designObjectId}`);
+  
+        if (designDetails.data.screens.filter((screen) => screen.screenStatus === "AwaitingLocation").length === designDetails.data.numberOfExposedScreens) {
+          await axios.patch(`http://localhost:4000/api/designs/${designObjectId}`,
+            {
+              designStatus: "AwaitingLocation"
             }
-          }
-        );
-
-        if (screensEndringFittingDetails.data.length === designDetails.data[0].numberOfExposedScreens) {
-          await axios.patch(`http://localhost:4000/api/designs/${designDetails.data[0]._id}`, {
-            // Updating design status after endring fitting of all screens
-            designStatus: "AwaitingLocation"
-          });
+          );
         }
+        setIsUpdating(false);
       } catch (error) {
         console.error("Error fetching screen details:", error);
       }
     }
 
-    updateDesignStatus(updateDesignNumber);
-    getScreenDetails();
+    updateDesignStatusAfterEndringFitting(currentDesignId);
+    getAwaitingEndringFittingDesigns();
 
     setIsUpdating(false);
   }, [isUpdating]);
 
-  const updateScreenDetails = async (screenId, screenStatusValue) => {
+  const updateEndringFittedByAndScreenStatus = async (designId, screenId, screenStatusValue) => {
     try {
-      await axios.patch(`http://localhost:4000/api/screens/${screenId}`, {
+      await axios.patch(`http://localhost:4000/api/screens/${designId}/${screenId}`, {
         // Updating screen details with their values
         endringFittedBy: updatedScreen.endringFittedByValue,
         screenStatus: screenStatusValue,
@@ -383,20 +375,6 @@ function ScreensEndringFitting() {
                   />
                 </div>
               </form>
-              <button
-                type="button"
-                className="inline-flex items-center justify-center mt-4 h-1/2 gap-x-1.5 rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
-              >
-                <PlusIcon className="-ml-0.5 h-5 w-5" aria-hidden="true" />
-                New Design
-              </button>
-              <button
-                type="button"
-                className="inline-flex items-center justify-center mt-4 h-1/2 gap-x-1.5 rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
-              >
-                <PlusIcon className="-ml-0.5 h-5 w-5" aria-hidden="true" />
-                Re-Expose
-              </button>
             </div>
           </div>
 
@@ -420,7 +398,7 @@ function ScreensEndringFitting() {
                       {stat.name}
                     </p>
                     <p className="mt-2 flex items-baseline gap-x-2">
-                      <span className="text-2xl font-semibold tracking-tight text-white">
+                      <span className="text-3xl font-semibold tracking-tight text-white">
                         {stat.value}
                       </span>
                       {stat.unit ? (
@@ -439,15 +417,15 @@ function ScreensEndringFitting() {
               <h2 className="px-4 text-md font-mono leading-7 text-green-400 sm:px-6 lg:px-8">
                 Endring Fitting For Screens
               </h2>
-              <table className="mt-6 w-full whitespace-nowrap text-left">
+              <table className="mt-6 w-full whitespace-nowrap text-left ts">
                 <colgroup>
                   <col className="w-1/12 sm:w-2/12" />
-                  <col className="lg:w-1/6" />
-                  <col className="lg:w-1/7" />
-                  <col className="lg:w-1/7" />
-                  <col className="lg:w-1/7" />
-                  <col className="lg:w-1/7" />
-                  <col className="lg:w-1/7" />
+                  <col className="lg:w-1/8" />
+                  <col className="lg:w-1/8" />
+                  <col className="lg:w-1/8" />
+                  <col className="lg:w-1/8" />
+                  <col className="lg:w-1/8" />
+                  <col className="lg:w-1/8" />
                 </colgroup>
                 <thead className="border-b border-white/10 text-md leading-6 text-gray-400">
                   <tr>
@@ -465,151 +443,158 @@ function ScreensEndringFitting() {
                     </th>
                     <th
                       scope="col"
-                      className="md:hidden py-2 pl-0 pr-8 font-mono sm:table-cell lg:table-cell"
+                      className="md:hidden py-2 pl-0 pr-8 font-mono sm:table-cell lg:table-cell lg:pl-5"
                     >
-                      Brand & Mesh
+                      Exposed Date
                     </th>
                     <th
                       scope="col"
-                      className="py-2 pl-0 pr-4 text-right font-mono sm:pr-8 sm:text-left lg:pr-20"
+                      className="py-2 pl-0 pr-4 text-right font-mono sm:pr-8 sm:text-left lg:pr-10"
                     >
-                      Completed Date
+
+                      Brand & Mesh / USE
                     </th>
                     <th
                       scope="col"
-                      className="py-2 pl-0 pr-4 text-right font-mono sm:pr-8 sm:text-left lg:pr-20"
+                      className="py-2 pl-0 pr-4 text-right font-mono sm:pr-8 sm:text-left lg:pr-10"
                     >
                       Screen Width
                     </th>
                     <th
                       scope="col"
-                      className="hidden py-2 pl-0 pr-8 font-mono md:table-cell lg:pr-20"
+                      className="hidden py-2 pl-0 pr-8 font-mono md:table-cell lg:pr-10"
                     >
                       Employee
                     </th>
                     <th
                       scope="col"
-                      className="hidden py-2 pl-0 pr-4 text-right font-mono sm:table-cell sm:pr-4 lg:pr-8"
+                      className="hidden py-2 pl-0 pr-4 text-right font-mono sm:table-cell sm:pr-4 lg:pr-4"
                     ></th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5">
-                  {currentScreens &&
-                    currentScreens.map((screen) => (
-                      <tr key={screen._id}>
-                        <td className="py-4 pl-4 pr-8 sm:pl-6 lg:pl-8">
-                          <div className="flex items-center gap-x-4">
-                            <div className="truncate text-md font-mono leading-6 text-white">
-                              {screen.pitchNumber}
+                  {awaitingEndringFittingScreens &&
+                    awaitingEndringFittingScreens
+                      .flatMap(
+                        (design) => design.screens.map((screen) => ({
+                          screen,
+                          designId: design._id
+                        })))
+                      .map(({ screen, designId }) => (
+                        <tr key={screen._id}>
+                          <td className="py-4 pl-4 pr-8 sm:pl-6 lg:pl-8">
+                            <div className="flex items-center gap-x-4">
+                              <div className="truncate text-md font-mono leading-6 text-white">
+                                {screen.pitchNumber}
+                              </div>
                             </div>
-                          </div>
-                        </td>
-                        <td className="hidden py-4 pl-0 pr-4 sm:table-cell sm:pr-8">
-                          <div className="flex gap-x-3">
-                            <p className="truncate text-md font-mono leading-6 text-white">
-                              {screen.exposedType}
-                            </p>
-                          </div>
-                        </td>
-                        <td className="py-4 pl-0 pr-2 sm:table-cell md:hidden lg:table-cell sm:pr-2">
-                          <div className="flex gap-x-3">
-                            <div className="font-mono text-lg leading-6 text-white">
+                          </td>
+                          <td className="hidden py-4 pl-0 pr-4 sm:table-cell sm:pr-8">
+                            <div className="flex gap-x-3">
                               <p className="truncate text-md font-mono leading-6 text-white">
-                                {screen.screenBrandAndMesh}
+                                {screen.exposedType}
                               </p>
                             </div>
-                          </div>
-                        </td>
-                        <td className="py-4 pl-0 pr-4 text-md leading-6 sm:pr-8 lg:pr-20">
-                          <div className="flex items-center justify-end gap-x-2 sm:justify-start">
-                            <div className="font-mono text-lg leading-6 text-white">
-                              <p className="truncate text-md font-mono leading-6 text-white">
-                                {screen.completedDate}
-                              </p>
+                          </td>
+                          <td className="py-4 pl-0 pr-2 sm:table-cell md:hidden lg:table-cell sm:pr-2 lg:pl-5">
+                            <div className="flex gap-x-3">
+                              <div className="font-mono text-lg leading-6 text-white">
+                                <p className="truncate text-md font-mono leading-6 text-white">
+                                  {screen.completedDate}
+                                </p>
+                              </div>
                             </div>
-                          </div>
-                        </td>
-                        <td className="py-4 pl-0 pr-4 text-sm leading-6 sm:pr-8 lg:pr-20">
-                          <div className="flex items-center justify-end gap-x-2 sm:justify-start">
-                            <div className="font-mono text-lg leading-6 text-white">
-                              <p className="truncate text-md font-mono leading-6 text-white">
-                                {screen.screenWidth + " mm"}
-                              </p>
+                          </td>
+                          <td className="py-4 pl-0 pr-4 text-md leading-6 sm:pr-8 lg:pr-20">
+                            <div className="flex items-center justify-end gap-x-2 sm:justify-start">
+                              <div className="font-mono text-lg leading-6 text-white">
+                                <p className="truncate text-md font-mono leading-6 text-white">
+                                  {screen.screenBrandAndMesh}
+                                </p>
+                              </div>
                             </div>
-                          </div>
-                        </td>
-                        <td className="hidden py-4 pl-0 pr-8 text-lg leading-6 font-mono text-white md:table-cell lg:pr-18">
-                          {screen.screenStatus === "AwaitingEndringFitting" ? (
-                            <select
-                              onChange={(event) => {
-                                const newValue = event.target.value;
+                          </td>
+                          <td className="py-4 pl-0 pr-4 text-sm leading-6 sm:pr-8 lg:pr-18">
+                            <div className="flex items-center justify-end gap-x-2 sm:justify-start">
+                              <div className="font-mono text-lg leading-6 text-white">
+                                <p className="truncate text-md font-mono leading-6 text-white">
+                                  {screen.screenWidth + " mm"}
+                                </p>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="hidden py-4 pl-0 pr-4 text-lg leading-6 font-mono text-white md:table-cell lg:pr-18 md:pr-12">
+                            {screen.screenStatus === "AwaitingEndringFitting" ? (
+                              <select
+                                onChange={(event) => {
+                                  const newValue = event.target.value;
 
-                                setUpdatedScreen((prevDetails) => ({
-                                  ...prevDetails,
-                                  endringFittedByValue: newValue,
-                                }));
-                              }}
-                              value={updatedScreen.engraverValue}
-                              className="p-1 w-full text-sm font-medium text-gray-100 bg-gray-800 border border-gray-300 focus:outline-indigo-500 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            >
-                              <option value=""></option>
-                              <option value="Person-A">Person-A</option>
-                              <option value="Person-B">Person-B</option>
-                              <option value="Person-C">Person-C</option>
-                              <option value="Person-D">Person-D</option>
-                            </select>
-                          ) : (
-                            <p className="p-1 w-full text-sm text-center font-medium text-gray-100 bg-gray-800 border border-gray-300 focus:outline-indigo-500 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-                              {screen.endringFittedBy}
-                            </p>
-                          )}
-                        </td>
-                        <td className="hidden py-4 pl-0 pr-8 text-sm leading-6 text-white md:table-cell md:pr-12 sm:pr-20">
-                          <div className="flex items-start justify-start">
-                            {screen.screenStatus ===
-                              "AwaitingEndringFitting" ? (
-                              <button
-                                type="button"
-                                className="inline-flex items-center justify-start gap-x-2 rounded-md bg-sky-900 px-3 py-2 text-md font-mono text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
-                                onClick={() => {
-                                  updateScreenDetails(
-                                    screen._id,
-                                    "AwaitingLocation"
-                                  );
-                                  setUpdateDesignNumber(screen.designNumber);
-                                  setIsUpdating(true);
+                                  setUpdatedScreen((prevDetails) => ({
+                                    ...prevDetails,
+                                    endringFittedByValue: newValue,
+                                  }));
                                 }}
+                                value={updatedScreen.endringFittedByValue}
+                                className="p-1 w-full text-sm font-medium text-gray-100 bg-gray-800 border border-gray-300 focus:outline-indigo-500 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                               >
-                                Pending
-                                <ClockIcon
-                                  className="-ml-0.5 h-5 w-5 text-green-500"
-                                  aria-hidden="true"
-                                />
-                              </button>
+                                <option value=""></option>
+                                <option value="Person-A">Person-A</option>
+                                <option value="Person-B">Person-B</option>
+                                <option value="Person-C">Person-C</option>
+                                <option value="Person-D">Person-D</option>
+                              </select>
                             ) : (
-                              <button
-                                type="button"
-                                className="inline-flex items-center justify-start gap-x-2 rounded-md bg-gray-700 px-3 py-2 text-md font-mono text-white shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
-                                onClick={() => {
-                                  updateScreenDetails(
-                                    screen._id,
-                                    "AwaitingEndringFitting"
-                                  );
-                                  setUpdateDesignNumber(screen.designNumber);
-                                  setIsUpdating(true);
-                                }}
-                              >
-                                Completed
-                                <CheckIcon
-                                  className="-ml-0.5 h-5 w-5 text-green-500"
-                                  aria-hidden="true"
-                                />
-                              </button>
+                              <p className="truncate text-md font-mono leading-6 text-white">
+                                {screen.endringFittedBy}
+                              </p>
                             )}
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
+                          </td>
+                          <td className="hidden py-4 pl-0 pr-4 text-sm leading-6 text-white md:table-cell md:pr-5 sm:pr-14">
+                            <div className="flex items-start justify-start">
+                              {screen.screenStatus === "AwaitingEngraving" ? (
+                                <p className="truncate text-lg font-mono leading-6 text-red-500">
+                                  Not Exposed
+                                </p>
+                              ) : (
+                                screen.screenStatus === "AwaitingEndringFitting" ? (
+                                  <button
+                                    type="button"
+                                    className="inline-flex items-center justify-start gap-x-2 rounded-md bg-sky-900 px-3 py-2 text-md font-mono text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+                                    onClick={() => {
+                                      updateEndringFittedByAndScreenStatus(designId, screen._id, "AwaitingLocation");
+                                      setCurrentDesignId(designId);
+                                      setIsUpdating(true);
+                                    }}
+                                  >
+                                    Pending
+                                    <ClockIcon
+                                      className="-ml-0.5 h-5 w-5 text-green-500"
+                                      aria-hidden="true"
+                                    />
+                                  </button>
+                                )
+                                  :
+                                  screen.exposedType === "Use" ? "" :
+                                    <button
+                                      type="button"
+                                      className="inline-flex items-center justify-start gap-x-2 rounded-md bg-gray-700 px-3 py-2 text-md font-mono text-white shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+                                      onClick={() => {
+                                        updateEndringFittedByAndScreenStatus(designId, screen._id, "AwaitingEndringFitting");
+                                        setCurrentDesignId(designId);
+                                        setIsUpdating(true);
+                                      }}
+                                    >
+                                      Completed
+                                      <CheckIcon
+                                        className="-ml-0.5 h-5 w-5 text-green-500"
+                                        aria-hidden="true"
+                                      />
+                                    </button>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
                 </tbody>
               </table>
             </div>

@@ -23,7 +23,9 @@ const designSchema = new mongoose.Schema(
     specialInstructions: { type: String },
     location: { type: String },
     designStatus: { type: String },
-  }, { timestamps: true }
+    lastPrintedDate: { type: String },
+  },
+  { timestamps: true }
 );
 
 // Creating and exposrting the design model

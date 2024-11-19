@@ -2,16 +2,8 @@ import { Fragment, useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Dialog, Transition } from "@headlessui/react";
 import {
-  UserIcon,
-  Cog6ToothIcon,
-  FolderIcon,
-  GlobeAltIcon,
-  ServerIcon,
-  SignalIcon,
   XMarkIcon,
-  PlusIcon,
   CheckIcon,
-  PencilIcon,
 } from "@heroicons/react/24/outline";
 
 import { MdPalette } from "react-icons/md";
@@ -23,7 +15,6 @@ import { HiDocumentText } from "react-icons/hi";
 import {
   Bars3Icon,
   MagnifyingGlassIcon,
-  ArrowRightCircleIcon,
   ClockIcon,
 } from "@heroicons/react/20/solid";
 import axios from "axios";
@@ -32,27 +23,6 @@ const teams = [
   { id: 1, name: "Planetaria", href: "#", initial: "P", current: false },
   { id: 2, name: "Protocol", href: "#", initial: "P", current: false },
   { id: 3, name: "Tailwind Labs", href: "#", initial: "T", current: false },
-];
-
-const statuses = {
-  Completed: "text-green-400 bg-green-400/10",
-  Error: "text-rose-400 bg-rose-400/10",
-};
-
-const activityItems = [
-  {
-    user: {
-      name: "Michael Foster",
-      imageUrl:
-        "https://images.unsplash.com/photo-1519244703995-f4e0f30006d5?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80",
-    },
-    commit: "2d89f0c8",
-    branch: "main",
-    status: "Completed",
-    duration: "25s",
-    date: "45 minutes ago",
-    dateTime: "2023-01-23T11:00",
-  },
 ];
 
 function classNames(...classes) {
@@ -142,67 +112,67 @@ function DesignsEngraving() {
   ];
 
   useEffect(() => {
-    const getScreenDetails = async () => {
+    const getScreensOfAwaitingEngravingDesign = async () => {
       try {
         const screenDetails = await axios.get(
-          `http://localhost:4000/api/designs/search?query=${currentDesign.designNumber}`
+          `http://localhost:4000/api/designs/${currentDesign._id}`
         );
 
-        setCurrentScreens(screenDetails.data[0].screens);
-        
+        setCurrentScreens(screenDetails.data.screens);
+
       } catch (error) {
         console.error("Error fetching screen details:", error);
       }
     };
 
-    // const countFinishedScreens = async () => {
-    //   try {
-    //     const screenDetails = await axios.get(
-    //       `http://localhost:4000/api/screens/search?query=${currentDesign.designNumber}`, {
-    //       params: {
-    //         screenStatus: "AwaitingEndringFitting"
-    //       }
-    //     }
-    //     );
+    const updateDesignStatus = async () => {
+      try {
+        const engravingCompletedScreens = await axios.get(
+          `http://localhost:4000/api/screens/${currentDesign._id}/search`, {
+          params: {
+            screenStatus: "AwaitingEndringFitting"
+          }
+        }
+        );
+        
+        if (engravingCompletedScreens.length === 0) {
+          await axios.patch(
+            `http://localhost:4000/api/designs/${currentDesign._id}`, {
+            designStatus: "AwaitingEngraving"
+           }
+          );
+        }
 
-    //     if (screenDetails.data.length === 0) {
-    //       await axios.patch(
-    //         `http://localhost:4000/api/designs/${currentDesign._id}`, {
-    //         designStatus: "AwaitingEngraving"
-    //       }
-    //       );
-    //     }
+        if (engravingCompletedScreens.data.length > 0) {
+          await axios.patch(
+            `http://localhost:4000/api/designs/${currentDesign._id}`, {
+            designStatus: "BeingEngraved"
+            }
+          );
+        }
 
-    //     if (screenDetails.data.length > 0) {
-    //       await axios.patch(
-    //         `http://localhost:4000/api/designs/${currentDesign._id}`, {
-    //         designStatus: "BeingEngraved"
-    //       }
-    //       );
-    //     }
+        if (engravingCompletedScreens.data.length === currentDesign.numberOfExposedScreens) {
+          await axios.patch(
+            `http://localhost:4000/api/designs/${currentDesign._id}`, {
+            designStatus: "EngravingCompleted"
+            }
+          );
+        }
 
-    //     if (screenDetails.data.length === currentDesign.numberOfExposedScreens) {
-    //       await axios.patch(
-    //         `http://localhost:4000/api/designs/${currentDesign._id}`, {
-    //         designStatus: "EngravingCompleted"
-    //       }
-    //       );
-    //     }
+      } catch (error) {
+        console.error("Error fetching screen details:", error);
+      }
+    };
 
-    //   } catch (error) {
-    //     console.error("Error fetching screen details:", error);
-    //   }
-    // };
-
-    getScreenDetails();
-    // countFinishedScreens();
+    getScreensOfAwaitingEngravingDesign();
+    updateDesignStatus();
 
     setIsUpdating(false);
   }, [isUpdating]);
 
   const updateScreenExposedType = async (screenId, newExposedType) => {
     try {
-      await axios.patch(`http://localhost:4000/api/screens/${screenId}`, {
+      await axios.patch(`http://localhost:4000/api/screens/${currentDesign._id}/${screenId}`, {
         exposedType: newExposedType,
       });
     } catch (error) {
@@ -210,9 +180,9 @@ function DesignsEngraving() {
     }
   };
 
-  const updateOtherScreenDetails = async (screenId, screenStatusValue) => {
+  const updateMeshDateEngraver = async (screenId, screenStatusValue) => {
     try {
-      await axios.patch(`http://localhost:4000/api/screens/${screenId}`, {
+      await axios.patch(`http://localhost:4000/api/screens/${currentDesign._id}/${screenId}`, {
         // Updating screen details with their values
         screenBrandAndMesh: updatedScreen.screenBrandAndMeshValue,
         completedDate: updatedScreen.completedDateValue,
@@ -691,7 +661,7 @@ function DesignsEngraving() {
                                 type="button"
                                 className="inline-flex items-center justify-start gap-x-2 rounded-md bg-sky-900 px-3 py-2 text-md font-mono font-bold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
                                 onClick={() => {
-                                  updateOtherScreenDetails(
+                                  updateMeshDateEngraver(
                                     screen._id,
                                     screen.exposedType === "New" ? "AwaitingEndringFitting" : "Use-Screen"
                                   );
@@ -709,14 +679,14 @@ function DesignsEngraving() {
                                 type="button"
                                 className="inline-flex items-center justify-start gap-x-2 rounded-md bg-gray-700 px-3 py-2 text-md font-mono font-bold text-white shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
                                 onClick={() => {
-                                  updateOtherScreenDetails(
+                                  updateMeshDateEngraver(
                                     screen._id,
                                     "AwaitingEngraving"
                                   );
                                   setIsUpdating(true);
                                 }}
                               >
-                                Completed
+                                Exposed
                                 <CheckIcon
                                   className="-ml-0.5 h-5 w-5 text-green-500"
                                   aria-hidden="true"

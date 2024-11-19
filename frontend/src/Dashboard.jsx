@@ -2,12 +2,6 @@ import { Fragment, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Dialog, Transition } from "@headlessui/react";
 import {
-  UserIcon,
-  Cog6ToothIcon,
-  FolderIcon,
-  GlobeAltIcon,
-  ServerIcon,
-  SignalIcon,
   XMarkIcon,
   PlusIcon,
 } from "@heroicons/react/24/outline";
@@ -18,19 +12,13 @@ import {
   ArrowRightCircleIcon,
 } from "@heroicons/react/20/solid";
 
-import { MdPalette } from "react-icons/md";
+import { MdPalette, MdRemoveCircleOutline } from "react-icons/md";
 import { FiTool, FiSettings } from "react-icons/fi";
 import { GoLocation } from "react-icons/go";
-import { FaUsers, FaDatabase} from "react-icons/fa";
+import { FaUsers, FaDatabase } from "react-icons/fa";
 import { HiDocumentText } from "react-icons/hi";
 
 import axios from "axios";
-
-const teams = [
-  { id: 1, name: "Planetaria", href: "#", initial: "P", current: false },
-  { id: 2, name: "Protocol", href: "#", initial: "P", current: false },
-  { id: 3, name: "Tailwind Labs", href: "#", initial: "T", current: false },
-];
 
 function classNames(...classes) {
   return classes.filter(Boolean).join(" ");
@@ -50,6 +38,7 @@ function Dashboard() {
     { name: "Endring Fittings", icon: FiTool, current: false, route: "/ScreensEndringFitting" },
     { name: "Screen Locations", icon: GoLocation, current: false, route: "/ScreensLocation" },
     { name: "Screen Warehouse", icon: FaDatabase, current: false, route: "/ScreenWarehouse" },
+    { name: "Endring Removing", icon: MdRemoveCircleOutline, current: false, route: "/ScreenWarehouse" },
     { name: "Design Details", icon: HiDocumentText, current: false, route: "/" },
     { name: "Employees", icon: FaUsers, current: false, route: "/" },
     { name: "Settings", icon: FiSettings, current: false, route: "/" },
@@ -82,6 +71,25 @@ function Dashboard() {
       }
     };
 
+    const getAwaitingEngravingScreens = async () => {
+      try {
+        // Fetch only designs with "AwaitingEngraving" status
+        const screenResults = await axios.get(
+          "http://localhost:4000/api/screens/search", {
+          params: {
+            screenStatus: "AwaitingEngraving"
+          }
+        }
+        );
+
+        setNumberOfNewScreens(screenResults.data.length);
+
+      } catch (error) {
+        console.error("Error fetching data", error);
+      }
+    };
+
+    getAwaitingEngravingScreens();
     getAwaitingEngravingDesigns();
 
   }, []);
@@ -286,7 +294,7 @@ function Dashboard() {
               </form>
               <button
                 type="button"
-                onClick={() => navigate("/DesignDetailsForm")}
+                onClick={() => navigate("/DesignDetailsInput")}
                 className="inline-flex items-center justify-center mt-4 h-1/2 gap-x-1.5 rounded-md bg-sky-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
               >
                 <PlusIcon className="-ml-0.5 h-5 w-5" aria-hidden="true" />
@@ -392,7 +400,7 @@ function Dashboard() {
                   <col className="lg:w-1/7" />
                   <col className="lg:w-1/7" />
                   <col className="lg:w-1/7" />
-                  <col className="lg:w-1/5" />
+                  <col className="lg:w-1/7" />
                   <col className="lg:w-1/7" />
                   <col className="lg:w-1/7" />
                 </colgroup>
@@ -406,13 +414,13 @@ function Dashboard() {
                     </th>
                     <th
                       scope="col"
-                      className="hidden py-2 pl-0 pr-8 font-mono sm:table-cell"
+                      className="hidden py-2 pl-0 pr-8 font-mono sm:table-cell "
                     >
                       Status
                     </th>
                     <th
                       scope="col"
-                      className="md:hidden py-2 pl-0 pr-8 font-mono sm:table-cell lg:table-cell"
+                      className="md:hidden py-2 pl-4 pr-8 font-mono sm:table-cell lg:table-cell"
                     >
                       Colors #
                     </th>
@@ -456,7 +464,7 @@ function Dashboard() {
                             </div>
                           </div>
                         </td>
-                        <td className="hidden py-4 pl-0 pr-4 sm:table-cell sm:pr-8">
+                        <td className="hidden py-4 pl-0 pr-4 sm:table-cell sm:pr-8 md:pr-5">
                           <div className="flex gap-x-3">
                             {design.exposedStatus === "New" ? (
                               <span className="inline-flex items-center rounded-md bg-green-500/10 px-2 py-1 text-sm font-medium text-green-400 ring-1 ring-inset ring-green-500/20">
@@ -469,7 +477,7 @@ function Dashboard() {
                             )}
                           </div>
                         </td>
-                        <td className="py-4 pl-0 pr-4 sm:table-cell md:hidden lg:table-cell sm:pr-8">
+                        <td className="py-4 pl-4 pr-4 sm:table-cell md:hidden lg:table-cell sm:pr-8">
                           <div className="flex gap-x-3">
                             <div className="font-mono text-lg leading-6 text-white">
                               {design.numberOfColors}

@@ -1,13 +1,7 @@
 import { Fragment, useEffect, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { Dialog, Transition } from "@headlessui/react";
 import {
-  UserIcon,
-  Cog6ToothIcon,
-  FolderIcon,
-  GlobeAltIcon,
-  ServerIcon,
-  SignalIcon,
   XMarkIcon,
   PlusIcon,
   CheckIcon,
@@ -22,7 +16,6 @@ import { HiDocumentText } from "react-icons/hi";
 import {
   Bars3Icon,
   MagnifyingGlassIcon,
-  ArrowRightCircleIcon,
   ClockIcon,
 } from "@heroicons/react/20/solid";
 import axios from "axios";
@@ -41,7 +34,6 @@ function ScreensLocation() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const [isUpdating, setIsUpdating] = useState(false);
-  const [currentScreens, setCurrentScreens] = useState([]);
   const [currentDesigns, setCurrentDesigns] = useState([]);
 
   const [updatedDesign, setUpdatedDesign] = useState({
@@ -64,47 +56,19 @@ function ScreensLocation() {
   const stats = [
     {
       statIdx: 1,
-      name: "Awaiting Location (designs)",
-      value: currentDesigns
-        .filter((design) => design.designStatus === "AwaitingLocation")
-        .length,
+      name: "Awaiting Location Designs #",
+      value: currentDesigns.length,
     },
     {
       statIdx: 2,
-      name: "Awaiting Location (screens)",
-      value: currentScreens
-        .filter((screen) => screen.screenStatus === "AwaitingLocation")
-        .length
-    },
-    {
-      statIdx: 3,
-      name: "Remove Location (screens)",
-      value: "not implemented",
-    },
-    {
-      statIdx: 4,
-      name: "Remove Endring (screens)",
-      value: "not implemented",
+      name: "Awaiting Location Screens #",
+      value: currentDesigns.reduce((sum, design) => {
+        return sum + design.numberOfExposedScreens
+      }, 0)
     }
   ];
 
   useEffect(() => {
-    const getScreenDetails = async () => {
-      try {
-        const screenDetails = await axios.get(
-          `http://localhost:4000/api/screens/search?`,
-          {
-            params: {
-              screenStatus: ["AwaitingLocation", "InLocation", "AwaitingEndringRemoving"]
-            },
-          }
-        );
-
-        setCurrentScreens(screenDetails.data);
-      } catch (error) {
-        console.error("Error fetching screen details:", error);
-      }
-    };
 
     const getDesignDetails = async () => {
       try {
@@ -112,7 +76,7 @@ function ScreensLocation() {
           `http://localhost:4000/api/designs/search?`,
           {
             params: {
-              designStatus: ["AwaitingLocation", "InLocation", "AwaitingEndringRemoving"]
+              designStatus: ["AwaitingLocation", "AwaitingDeEndring"]
             },
           }
         );
@@ -124,7 +88,6 @@ function ScreensLocation() {
     };
 
     getDesignDetails();
-    getScreenDetails();
 
     setIsUpdating(false);
 
@@ -453,7 +416,7 @@ function ScreensLocation() {
           <main>
             <header>
               {/* Stats */}
-              <div className="grid grid-cols-1 bg-gray-900 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="grid grid-cols-1 bg-gray-900 sm:grid-cols-2 lg:grid-cols-2">
                 {stats.map((stat, statIdx) => (
                   <div
                     key={stat.name}
@@ -470,7 +433,7 @@ function ScreensLocation() {
                       {stat.name}
                     </p>
                     <p className="mt-2 flex items-baseline gap-x-2">
-                      <span className="text-2xl font-semibold tracking-tight text-white">
+                      <span className="text-3xl font-semibold tracking-tight text-white">
                         {stat.value}
                       </span>
                       {stat.unit ? (
@@ -539,7 +502,6 @@ function ScreensLocation() {
                 <tbody className="divide-y divide-white/5">
                   {currentDesigns &&
                     currentDesigns
-                      .filter((design) => design.designStatus === "AwaitingLocation")
                       .map((design) => (
                         <tr key={design._id}>
                           <td className="py-4 pl-4 pr-8 sm:pl-6 lg:pl-8">

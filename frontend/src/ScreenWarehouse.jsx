@@ -2,19 +2,11 @@ import { Fragment, useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Dialog, Transition } from "@headlessui/react";
 import {
-  UserIcon,
-  Cog6ToothIcon,
-  FolderIcon,
-  GlobeAltIcon,
-  ServerIcon,
-  SignalIcon,
   XMarkIcon,
-  PlusIcon,
   CheckIcon,
-  PencilIcon,
 } from "@heroicons/react/24/outline";
 
-import { MdPalette, MdUpdate } from "react-icons/md";
+import { MdPalette, MdRemoveCircleOutline, MdSave } from "react-icons/md";
 import { FiTool, FiSettings } from "react-icons/fi";
 import { GoLocation } from "react-icons/go";
 import { FaUsers, FaDatabase } from "react-icons/fa";
@@ -23,10 +15,12 @@ import { HiDocumentText } from "react-icons/hi";
 import {
   Bars3Icon,
   MagnifyingGlassIcon,
-  ArrowRightCircleIcon,
   ClockIcon,
 } from "@heroicons/react/20/solid";
+
 import axios from "axios";
+
+import DaysDifference from "./CalculateDaysDifference";
 
 const teams = [
   { id: 1, name: "Planetaria", href: "#", initial: "P", current: false },
@@ -38,18 +32,18 @@ function classNames(...classes) {
   return classes.filter(Boolean).join(" ");
 }
 
-function ScreenWarehouse() {
+function DesignsEngraving() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const [isUpdating, setIsUpdating] = useState(false);
   const [designs, setDesigns] = useState([]);
-  const [isDesignUpdating, setisDesignUpdating] = useState(false);
-
-  const [updatedScreen, setUpdatedScreen] = useState({
-    screenBrandAndMeshValue: "",
-    completedDateValue: new Date().toISOString().split("T")[0],
-    engraverValue: "",
-    screenStatusValue: "AwaitingEndringFitting",
+  const [userNeedsToUpdate, setUserNeedsToUpdate] = useState(false);
+  const [updatingDesignId, setUpdatingDesignId] = useState("");
+  const [updatedDesign, setUpdatedDesign] = useState({
+    locationUpdated: false,
+    updatedLocation: "",
+    lastPrintedDateUpdated: false,
+    updatedLastPrintedDate: ""
   });
 
   const navigate = useNavigate();
@@ -59,45 +53,47 @@ function ScreenWarehouse() {
     { name: "Endring Fittings", icon: FiTool, current: false, route: "/ScreensEndringFitting" },
     { name: "Screen Locations", icon: GoLocation, current: false, route: "/ScreensLocation" },
     { name: "Screen Warehouse", icon: FaDatabase, current: true, route: "/ScreenWarehouse" },
+    { name: "Endring Removing", icon: MdRemoveCircleOutline, current: false, route: "/ScreenWarehouse" },
     { name: "Design Details", icon: HiDocumentText, current: false, route: "/" },
     { name: "Employees", icon: FaUsers, current: false, route: "/" },
     { name: "Settings", icon: FiSettings, current: false, route: "/" },
   ];
 
+  let totalScreens = designs
+    .filter((design) => design.designStatus === "InLocation")
+    .reduce((sum, design) => sum + design.numberOfExposedScreens, 0);
+
+  let totalLocations = 3000;
+
+  let filledPercentage = totalScreens / totalLocations * 100;
+
   const stats = [
     {
       statIdx: 1,
       name: "Total Designs",
-      value:
-        designs
-          .filter((design) => design.designStatus === "InLocation").length,
+      value: designs.length
     },
     {
       statIdx: 2,
       name: "Total Screens",
-      value:
-        designs
-          .filter(design => design.designStatus === "InLocation")
-          .reduce((sum, design) => sum + (design.numberOfExposedScreens || 0), 0)
+      value: totalScreens
     },
     {
       statIdx: 3,
-      name: "Locations Capacity",
-      value: 3000 // Need to calculate the total locations using api/location
+      name: "Total Locations",
+      value: totalLocations
     },
     {
-      statIdx: 3,
+      statIdx: 4,
       name: "Locations Filled %",
-      value: (designs
-        .filter(design => design.designStatus === "InLocation")
-        .reduce((sum, design) => sum + (design.numberOfExposedScreens || 0), 0) / 3000 * 100).toFixed(2) + " %"
+      value: filledPercentage.toFixed(3) + " %"
     }
   ];
 
   useEffect(() => {
-    const getDesignDetails = async () => {
+    const getScreensOfAwaitingEngravingDesign = async () => {
       try {
-        const designDetails = await axios.get(
+        const screenDetails = await axios.get(
           `http://localhost:4000/api/designs/search`, {
           params: {
             designStatus: ["InLocation", "AwaitingDeEndring"]
@@ -105,53 +101,63 @@ function ScreenWarehouse() {
         }
         );
 
-        setDesigns(designDetails.data);
+        setDesigns(screenDetails.data);
+
       } catch (error) {
         console.error("Error fetching screen details:", error);
       }
     };
 
-    getDesignDetails();
+    getScreensOfAwaitingEngravingDesign();
 
     setIsUpdating(false);
   }, [isUpdating]);
 
-  const updateScreenExposedType = async (designId, newDesignStatus) => {
+  const updateDesignStatus = async (designId, newExposedType) => {
     try {
-      if (newDesignStatus === "AwaitingDeEndring") {
-        await axios.patch(`http://localhost:4000/api/designs/${designId}`, {
-          designStatus: "AwaitingDeEndring",
-          location: ""
-        });
-        // When a design is removed for de-endring all of its screens should also be marked for de-endring.
-        // That is not implemented yet
-      } else {
-        await axios.patch(`http://localhost:4000/api/designs/${designId}`, {
-          designStatus: "AwaitingLocation",
-          location: ""
-        });
-      }
+      await axios.patch(`http://localhost:4000/api/designs/${designId}`, {
+        designStatus: newExposedType,
+      });
     } catch (error) {
       console.error("Error updating screen details:", error);
     }
   };
 
-  const updateOtherScreenDetails = async (screenId, screenStatusValue) => {
+  const updateLocationAndPrintedDate = async (designId, designStatus) => {
     try {
-      await axios.patch(`http://localhost:4000/api/screens/${screenId}`, {
-        // Updating screen details with their values
-        screenBrandAndMesh: updatedScreen.screenBrandAndMeshValue,
-        completedDate: updatedScreen.completedDateValue,
-        engraver: updatedScreen.engraverValue,
-        screenStatus: screenStatusValue,
-      });
 
-      setUpdatedScreen({
-        screenBrandAndMeshValue: "",
-        completedDateValue: new Date().toISOString().split("T")[0],
-        engraverValue: "",
-        screenStatusValue: "AwaitingEndringFitting",
-      });
+      if (designStatus === "InLocation") {
+        if (updatedDesign.locationUpdated && updatedDesign.lastPrintedDateUpdated) {
+          await axios.patch(`http://localhost:4000/api/designs/${designId}`, {
+            location: updatedDesign.updatedLocation,
+            lastPrintedDate: updatedDesign.updatedLastPrintedDate
+          });
+        }
+        if (updatedDesign.locationUpdated) {
+          await axios.patch(`http://localhost:4000/api/designs/${designId}`, {
+            location: updatedDesign.updatedLocation
+          });
+        }
+        if (updatedDesign.lastPrintedDateUpdated) {
+          await axios.patch(`http://localhost:4000/api/designs/${designId}`, {
+            lastPrintedDate: updatedDesign.updatedLastPrintedDate
+          });
+        }
+      }
+
+      if (designStatus === "AwaitingDeEndring") {
+        await axios.patch(`http://localhost:4000/api/designs/${designId}`, {
+          location: ""
+        });
+      }
+
+      setUpdatedDesign((prevDetails) => ({
+        ...prevDetails,
+        locationUpdated: false,
+        updatedLocation: "",
+        lastPrintedDateUpdated: false,
+        updatedLastPrintedDate: ""
+      }));
 
       setIsUpdating(false);
     } catch (error) {
@@ -248,31 +254,6 @@ function ScreenWarehouse() {
                             ))}
                           </ul>
                         </li>
-                        {/* <li>
-                          <div className="text-xs font-semibold leading-6 text-gray-400">
-                            Your teams
-                          </div>
-                          <ul role="list" className="-mx-2 mt-2 space-y-1">
-                            {teams.map((team) => (
-                              <li key={team.name}>
-                                <a
-                                  href={team.href}
-                                  className={classNames(
-                                    team.current
-                                      ? "bg-gray-800 text-white"
-                                      : "text-gray-400 hover:text-white hover:bg-gray-800",
-                                    "group flex gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold"
-                                  )}
-                                >
-                                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border border-gray-700 bg-gray-800 text-[0.625rem] font-medium text-gray-400 group-hover:text-white">
-                                    {team.initial}
-                                  </span>
-                                  <span className="truncate">{team.name}</span>
-                                </a>
-                              </li>
-                            ))}
-                          </ul>
-                        </li> */}
                         <li className="-mx-6 mt-auto">
                           <a
                             href="#"
@@ -316,9 +297,9 @@ function ScreenWarehouse() {
                         <button
                           className={classNames(
                             item.current
-                              ? "bg-gray-800 text-white"
+                              ? "bg-gray-600 text-white"
                               : "text-gray-400 hover:text-white hover:bg-gray-800",
-                            "group flex gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold"
+                            "group flex gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold w-full"
                           )}
                           onClick={() => navigate(item.route)}
                         >
@@ -332,31 +313,6 @@ function ScreenWarehouse() {
                     ))}
                   </ul>
                 </li>
-                {/* <li>
-                  <div className="text-xs font-semibold leading-6 text-gray-400">
-                    Your teams
-                  </div>
-                  <ul role="list" className="-mx-2 mt-2 space-y-1">
-                    {teams.map((team) => (
-                      <li key={team.name}>
-                        <a
-                          href={team.href}
-                          className={classNames(
-                            team.current
-                              ? "bg-gray-800 text-white"
-                              : "text-gray-400 hover:text-white hover:bg-gray-800",
-                            "group flex gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold"
-                          )}
-                        >
-                          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border border-gray-700 bg-gray-800 text-[0.625rem] font-medium text-gray-400 group-hover:text-white">
-                            {team.initial}
-                          </span>
-                          <span className="truncate">{team.name}</span>
-                        </a>
-                      </li>
-                    ))}
-                  </ul>
-                </li> */}
                 <li className="-mx-6 mt-auto">
                   <a
                     href="#"
@@ -402,7 +358,7 @@ function ScreenWarehouse() {
                     id="search-field"
                     className="block h-full w-full bg-gray-800 bg-transparent border-0 border-bg-gray-800 py-0 pl-8 pr-0 text-white focus:ring-0 focus:outline-none sm:text-md"
                     placeholder="Search..."
-                    type="search"
+                    type="number"
                     name="search"
                   />
                 </div>
@@ -411,7 +367,6 @@ function ScreenWarehouse() {
                 type="button"
                 className="inline-flex items-center gap-x-2 h-1/2 my-4 rounded-md bg-sky-900 px-3 py-2 text-md font-mono font-bold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
               >
-                <PencilIcon className="-ml-0.5 h-5 w-5" aria-hidden="true" />
                 Change
               </button> */}
               {/* <button               // Replace these buttons with save design details buttons
@@ -427,7 +382,7 @@ function ScreenWarehouse() {
           <main>
             <header>
               {/* Stats */}
-              <div className="grid grid-cols-1 bg-gray-900 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="grid grid-cols-1 bg-gray-900 sm:grid-cols-4 lg:grid-cols-4">
                 {stats.map((stat, statIdx) => (
                   <div
                     key={stat.name}
@@ -461,15 +416,15 @@ function ScreenWarehouse() {
             {/* Activity list */}
             <div className="border-y border-white/10 bg-gray-900 pt-6 min-h-screen">
               <h2 className="px-4 text-md font-mono leading-7 text-green-400 sm:px-6 lg:px-8">
-                Available Design Details
+                Available Designs In Location
               </h2>
-              <table className="mt-6 w-full whitespace-nowrap text-left table-fixed">
+              <table className="mt-6 w-full whitespace-nowrap text-left">
                 <colgroup>
-                  <col className="w-1/8 sm:w-1/7" />
-                  <col className="lg:w-1/7" />
-                  <col className="lg:w-1/7" />
-                  <col className="lg:w-1/7" />
-                  <col className="lg:w-1/8" />
+                  <col className="w-1/8 sm:w-1/6" />
+                  <col className="lg:w-1/6" />
+                  <col className="lg:w-1/6" />
+                  <col className="lg:w-1/6" />
+                  <col className="lg:w-1/6" />
                   <col className="lg:w-1/12" />
                 </colgroup>
                 <thead className="border-b border-white/10 text-md leading-6 text-gray-400">
@@ -488,21 +443,21 @@ function ScreenWarehouse() {
                     </th>
                     <th
                       scope="col"
-                      className="py-2 pl-0 pr-4 text-right font-mono sm:pr-8 sm:text-left lg:pr-20"
+                      className="md:hidden py-2 pl-0 pr-8 font-mono sm:table-cell lg:table-cell"
                     >
                       Location
                     </th>
                     <th
                       scope="col"
-                      className="hidden py-2 pl-0 pr-8 font-mono md:table-cell lg:pr-20"
+                      className="py-2 pl-0 pr-4 text-right font-mono sm:pr-8 sm:text-left lg:pr-20"
                     >
-                      Last Print Date
+                      Last Printed Date
                     </th>
                     <th
                       scope="col"
                       className="hidden py-2 pl-0 pr-8 font-mono md:table-cell lg:pr-20"
                     >
-                      Days Since last Print
+                      Days #
                     </th>
                     <th
                       scope="col"
@@ -510,32 +465,34 @@ function ScreenWarehouse() {
                     ></th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-white/5">
+                <tbody className="divide-y divide-gray-500">
                   {designs &&
-                    designs.map((design) => (
+                    designs
+                    .map((design) => (
                       <tr key={design._id}>
-                        <td className="py-4 pl-4 pr-8 sm:pl-6 lg:pl-8">
+                        <td className="py-2 pl-4 pr-8 sm:pl-6 lg:pl-8">
                           <div className="flex items-center gap-x-4">
                             <div className="truncate text-lg font-mono leading-6 text-white">
                               {design.designNumber + " / " + design.numberOfColors}
                             </div>
                           </div>
                         </td>
-                        <td className="hidden py-4 pl-0 pr-4 sm:table-cell sm:pr-8">
+                        <td className="hidden py-2 pl-0 pr-4 sm:table-cell sm:pr-8">
                           <div className="flex gap-x-3">
-                            {isDesignUpdating ?
+                            {userNeedsToUpdate && design._id === updatingDesignId ? (
                               <div>
                                 <span
-                                  className={`inline-flex items-center rounded-md px-2 py-1 text-sm font-medium ring-1 ring-inset ${design.designStatus === "InLocation"
-                                    ? "bg-green-500/10 text-green-400 ring-green-500/20"
-                                    : "bg-red-500/10 text-red-400 ring-red-500/20"
+                                  className={`inline-flex items-center rounded-md px-2 py-1 text-sm font-medium ring-1 ring-inset 
+                                    ${design.designStatus === "InLocation"
+                                      ? "bg-green-500/10 text-green-400 ring-green-500/20"
+                                      : "bg-red-500/10 text-red-400 ring-red-500/20"
                                     }`}
                                 >
-                                  {design.designStatus === "InLocation" ? "Available" : "Remove"}
+                                  {design.designStatus === "InLocation" ? "Available" : "Removed"}
                                 </span>
                                 <button
                                   onClick={() => {
-                                    updateScreenExposedType(
+                                    updateDesignStatus(
                                       design._id,
                                       design.designStatus === "InLocation"
                                         ? "AwaitingDeEndring"
@@ -543,170 +500,117 @@ function ScreenWarehouse() {
                                     );
                                     setIsUpdating(true);
                                   }}
-                                  className={`inline-flex items-center focus:outline-none rounded px-2 py-1 text-sm font-medium ring-1 ring-inset ${design.designStatus === "AwaitingDeEndring"
-                                    ? "bg-green-500/10 text-green-400 ring-green-500/20 hover:bg-green-800"
-                                    : "bg-red-500/10 text-red-400 ring-red-500/20 hover:bg-red-800"
+                                  className={`inline-flex items-center focus:outline-none rounded px-2 py-1 text-sm font-medium ring-1 ring-inset 
+                                    ${design.designStatus === "InLocation"
+                                      ? "bg-red-500/10 text-red-400 ring-red-500/20 hover:bg-red-200/20"
+                                      : "bg-green-500/10 text-green-400 ring-green-500/20 hover:bg-green-200/20"
                                     }`}
                                 >
                                   {design.designStatus === "InLocation" ? "Remove" : "Available"}
                                 </button>
-                              </div> : <span
-                                className={`inline-flex items-center rounded-md px-2 py-1 text-sm font-medium ring-1 ring-inset ${design.designStatus === "InLocation"
-                                  ? "bg-green-500/10 text-green-400 ring-green-500/20"
-                                  : "bg-red-500/10 text-red-400 ring-red-500/20"
+                              </div>
+                            ) : (
+                              <p
+                                className={`inline-flex items-center focus:outline-none rounded hover:bg-sky-800 px-2 py-1 text-sm font-medium ring-1 ring-inset 
+                                ${design.designStatus === "InLocation"
+                                    ? "bg-green-500/10 text-green-400 ring-green-500/20"
+                                    : "bg-red-500/10 text-red-400 ring-red-500/20"
                                   }`}
                               >
-                                {design.designStatus === "InLocation" ? "Available" : "Awaiting De-Endring"}
-                              </span>}
+                                {design.designStatus === "InLocation" ? "Available" : "Removed"}
+                              </p>
+                            )}
                           </div>
                         </td>
-                        <td className="py-4 pl-7 pr-8 sm:pl-6 lg:pl-1">
-                          <div className="flex items-center gap-x-4">
-                            <div className="truncate text-lg font-mono leading-6 text-white">
-                              {design.location}
-                            </div>
-                          </div>
-                        </td>
-                        <td className="py-4 pl-0 pr-2 sm:table-cell md:hidden lg:table-cell sm:pr-2">
+                        <td className="py-2 pl-0 pr-2 sm:table-cell md:hidden lg:table-cell sm:pr-2">
                           <div className="flex gap-x-3">
-                            <div className="font-mono text-lg leading-6 text-white">
-                              {design.screenStatus === "AwaitingEngraving" ? (
-                                design.exposedType === "New" ? (
-                                  <select
-                                    onChange={(event) => {
-                                      const newValue = event.target.value;
-
-                                      setUpdatedScreen((prevDetails) => ({
-                                        ...prevDetails,
-                                        screenBrandAndMeshValue: newValue,
-                                      }));
-                                    }}
-                                    value={
-                                      updatedScreen.screenBrandAndMeshValue
-                                    }
-                                    className="p-1 w-full text-sm font-medium text-gray-100 bg-gray-800 border border-gray-300 focus:outline-indigo-500 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                  >
-                                    <option value=""></option>
-                                    <option value="125CHINA">125 CHINA</option>
-                                    <option value="135CHINA">135 CHINA</option>
-                                    <option value="155CHINA">155 CHINA</option>
-                                    <option value="155CHINA">155 CHINA</option>
-                                  </select>
-                                ) : (
-                                  <input
-                                    type="text"
-                                    value={
-                                      updatedScreen.screenBrandAndMeshValue
-                                    }
-                                    onChange={(event) => {
-                                      const newValue = event.target.value;
-
-                                      setUpdatedScreen((prevDetails) => ({
-                                        ...prevDetails,
-                                        screenBrandAndMeshValue: newValue,
-                                      }));
-                                    }}
-                                    className="p-1 w-full text-sm font-medium text-gray-100 bg-gray-800 border border-gray-300 focus:outline-indigo-500 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                  />
-                                )
+                            <div className="font-mono text-lg leading-6 text-white lg:w-3/4 md:w-1/2">
+                              {design.designStatus === "InLocation" && userNeedsToUpdate && design._id === updatingDesignId ? (
+                                <select
+                                  defaultValue={design.location}
+                                  onChange={(event) => {
+                                    const newValue = event.target.value;
+                                    setUpdatedDesign((prevDetails) => ({
+                                      ...prevDetails,
+                                      locationUpdated: true,
+                                      updatedLocation: newValue,
+                                    }));
+                                  }}
+                                  className="p-1 w-full text-sm font-medium text-gray-100 bg-gray-800 border border-gray-300 focus:outline-indigo-500 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                >
+                                  <option value=""></option>
+                                  <option value="A01-L01">A01-L01</option>
+                                  <option value="A01-L02">A01-L02</option>
+                                  <option value="A01-L03">A01-L03</option>
+                                  <option value="A01-L04">A01-L04</option>
+                                </select>
                               ) : (
                                 <p className="truncate text-md font-mono leading-6 text-white">
-                                  {design.screenBrandAndMesh}
+                                  {design.location}
                                 </p>
                               )}
                             </div>
                           </div>
                         </td>
-                        <td className="py-4 pl-0 pr-4 text-sm leading-6 sm:pr-8 lg:pr-20">
+                        <td className="py-2 pl-0 pr-4 text-sm leading-6 sm:pr-8 lg:pr-20">
                           <div className="flex items-center justify-end gap-x-2 sm:justify-start">
                             <div className="font-mono text-lg leading-6 text-white">
-                              {design.designStatus === "InLocation" ? (
+                              {design.designStatus === "InLocation" && userNeedsToUpdate && design._id === updatingDesignId ? (
                                 <input
                                   type="date"
                                   required
                                   className="p-1 w-full text-sm font-medium text-gray-100 bg-gray-800 border border-gray-300 focus:outline-indigo-500 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                  value={updatedScreen.completedDateValue}
+                                  defaultValue={new Date().toISOString().split("T")[0]}
                                   onChange={(event) => {
                                     const newValue = event.target.value;
-
-                                    setUpdatedScreen((prevDetails) => ({
+                                    setUpdatedDesign((prevDetails) => ({
                                       ...prevDetails,
-                                      completedDateValue: newValue,
+                                      lastPrintedDateUpdated: true,
+                                      updatedLastPrintedDate: newValue,
                                     }));
                                   }}
                                 />
                               ) : (
                                 <p className="truncate text-md font-mono leading-6 text-white">
-                                  {design.completedDate}
+                                  {design.lastPrintedDate}
                                 </p>
                               )}
                             </div>
                           </div>
                         </td>
-                        <td className="hidden py-4 pl-0 pr-8 text-lg leading-6 font-mono text-white md:table-cell lg:pr-10">
-                          {design.screenStatus === "AwaitingEngraving" ? (
-                            <select
-                              onChange={(event) => {
-                                const newValue = event.target.value;
-
-                                setUpdatedScreen((prevDetails) => ({
-                                  ...prevDetails,
-                                  engraverValue: newValue,
-                                }));
-                              }}
-                              value={updatedScreen.engraverValue}
-                              className="p-1 w-full text-sm font-medium text-gray-100 bg-gray-800 border border-gray-300 focus:outline-indigo-500 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            >
-                              <option value=""></option>
-                              <option value="Person-A">Person-A</option>
-                              <option value="Person-B">Person-B</option>
-                              <option value="Person-C">Person-C</option>
-                              <option value="Person-D">Person-D</option>
-                            </select>
-                          ) : (
-                            <p className="truncate text-md font-mono leading-6 text-white">
-                              {design.engraver}
-                            </p>
-                          )}
+                        <td className="hidden py-2 pl-0 pr-8 text-lg leading-6 font-mono text-white md:table-cell lg:pr-10">
+                          <p className="truncate text-md font-mono leading-6 text-white">
+                            <DaysDifference givenDate={design.lastPrintedDate} /> {" Days"}
+                          </p>
                         </td>
-                        <td className="hidden py-4 pl-0 pr-8 text-sm leading-6 text-white md:table-cell md:pr-12 sm:pr-20">
+                        <td className="hidden py-2 pl-0 pr-8 text-sm leading-6 text-white md:table-cell md:pr-12 sm:pr-20">
                           <div className="flex items-start justify-start">
-                            {isDesignUpdating ? (
+                            {userNeedsToUpdate && design._id === updatingDesignId ? (
                               <button
                                 type="button"
-                                className="inline-flex items-center justify-start gap-x-2 rounded-md bg-sky-900 px-3 py-2 text-md font-mono font-bold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+                                className="inline-flex items-center justify-start gap-x-2 rounded-md bg-yellow-600 px-3 py-2 text-md font-mono font-bold text-white shadow-sm hover:bg-yellow-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-yellow-600"
                                 onClick={() => {
-                                  updateOtherScreenDetails(
+                                  updateLocationAndPrintedDate(
                                     design._id,
-                                    design.exposedType === "New" ? "AwaitingEndringFitting" : "Use-Screen"
+                                    design.designStatus === "InLocation" ? "InLocation" : "AwaitingDeEndring"
                                   );
                                   setIsUpdating(true);
-                                  setisDesignUpdating(false);
+                                  setUserNeedsToUpdate(false);
                                 }}
                               >
-                                Pending
-                                <MdUpdate
-                                  className="-ml-0.5 h-5 w-5 text-green-500"
-                                  aria-hidden="true"
-                                />
+                                Modify
                               </button>
                             ) : (
                               <button
                                 type="button"
-                                className="inline-flex items-center justify-start gap-x-2 rounded-md bg-gray-700 px-3 py-2 text-md font-mono font-bold text-white shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+                                className="inline-flex items-center justify-start gap-x-2 rounded-md bg-green-700 px-3 hover:bg-green-600 py-2 text-md font-mono font-bold text-white shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600"
                                 onClick={() => {
-                                  updateOtherScreenDetails(
-                                    design._id,
-                                    "AwaitingEngraving"
-                                  );
-                                  setisDesignUpdating(true);
+                                  setIsUpdating(true);
+                                  setUserNeedsToUpdate(true);
+                                  setUpdatingDesignId(design._id);
                                 }}
                               >
-                                Completed
-                                <CheckIcon
-                                  className="-ml-0.5 h-5 w-5 text-green-500"
-                                  aria-hidden="true"
-                                />
+                                Update
                               </button>
                             )}
                           </div>
@@ -723,4 +627,4 @@ function ScreenWarehouse() {
   );
 }
 
-export default ScreenWarehouse;
+export default DesignsEngraving;

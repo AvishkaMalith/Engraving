@@ -48,6 +48,7 @@ const createDesign = async (req, res) => {
     specialInstructions,
     location,
     designStatus,
+    lastPrintedDate
   } = req.body;
 
   try {
@@ -68,6 +69,7 @@ const createDesign = async (req, res) => {
       specialInstructions,
       location,
       designStatus,
+      lastPrintedDate
     });
 
     res.status(200).json({
