@@ -404,7 +404,7 @@ function Dashboard() {
                   <col className="lg:w-1/7" />
                   <col className="lg:w-1/7" />
                 </colgroup>
-                <thead className="border-b border-white/10 text-sm leading-6 text-gray-400">
+                <thead className="border-b border-white/10 md:text-sm lg:text-md leading-6 text-gray-400">
                   <tr>
                     <th
                       scope="col"
@@ -422,13 +422,13 @@ function Dashboard() {
                       scope="col"
                       className="md:hidden py-2 pl-4 pr-8 font-mono sm:table-cell lg:table-cell"
                     >
-                      Colors #
+                      Screens #
                     </th>
                     <th
                       scope="col"
                       className="py-2 pl-0 pr-4 text-right font-mono sm:pr-8 sm:text-left lg:pr-20"
                     >
-                      Screens #
+                      Received Date
                     </th>
                     <th
                       scope="col"
@@ -460,7 +460,7 @@ function Dashboard() {
                             className="h-8 w-8 rounded-full bg-gray-800"
                           /> */}
                             <div className="truncate text-lg font-mono leading-6 text-white">
-                              {design.designNumber}
+                              {design.designNumber + " / " + design.numberOfColors}
                             </div>
                           </div>
                         </td>
@@ -504,7 +504,7 @@ function Dashboard() {
                             <div className="h-1.5 w-1.5 rounded-full bg-current" />
                           </div> */}
                             <div className="font-mono text-lg leading-6 text-white">
-                              {design.numberOfExposedScreens}
+                              {design.receivedDate}
                             </div>
                           </div>
                         </td>

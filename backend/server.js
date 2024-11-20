@@ -8,6 +8,7 @@ const mongoose = require("mongoose");
 const cors = require("cors");
 const designRoutes = require("./routes/designRoutes");
 const screenRoutes = require("./routes/screenRoutes");
+const locationRoutes = require("./routes/locationRoutes");
 
 // Creating an express app
 const app = express();
@@ -23,6 +24,7 @@ app.use((req, res, next) => {
 // Defining the routes
 app.use("/api/designs", designRoutes);
 app.use("/api/screens", screenRoutes);
+app.use("/api/locations", locationRoutes);
 
 // Connecting to the MongoDB
 mongoose.connect(mongoDBURL)

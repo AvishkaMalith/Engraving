@@ -7,7 +7,7 @@ import {
   CheckIcon,
 } from "@heroicons/react/24/outline";
 
-import { MdPalette } from "react-icons/md";
+import { MdPalette, MdRemoveCircleOutline } from "react-icons/md";
 import { FiTool, FiSettings } from "react-icons/fi";
 import { GoLocation } from "react-icons/go";
 import { FaUsers, FaDatabase } from "react-icons/fa";
@@ -35,10 +35,11 @@ function ScreensLocation() {
 
   const [isUpdating, setIsUpdating] = useState(false);
   const [currentDesigns, setCurrentDesigns] = useState([]);
+  const [currentLocations, setCurrentLocations] = useState([]);
 
   const [updatedDesign, setUpdatedDesign] = useState({
     designLocationValue: "",
-    designStatusValue: "AwaitingLocation",
+    designStatusValue: "AwaitingLocation"
   });
 
   const navigate = useNavigate();
@@ -48,6 +49,7 @@ function ScreensLocation() {
     { name: "Endring Fittings", icon: FiTool, current: false, route: "/ScreensEndringFitting" },
     { name: "Screen Locations", icon: GoLocation, current: true, route: "/ScreensLocation" },
     { name: "Screen Warehouse", icon: FaDatabase, current: false, route: "/ScreenWarehouse" },
+    { name: "Endring Removing", icon: MdRemoveCircleOutline, current: false, route: "/" },
     { name: "Design Details", icon: HiDocumentText, current: false, route: "/" },
     { name: "Employees", icon: FaUsers, current: false, route: "/" },
     { name: "Settings", icon: FiSettings, current: false, route: "/" },
@@ -87,7 +89,18 @@ function ScreensLocation() {
       }
     };
 
+    const getLocations = async () => {
+      try {
+        const locations = await axios.get(`http://localhost:4000/api/locations/`);
+
+        setCurrentLocations(locations.data);
+      } catch (error) {
+        console.error("Error fetching location details:", error);
+      }
+    };
+
     getDesignDetails();
+    getLocations();
 
     setIsUpdating(false);
 
@@ -541,7 +554,6 @@ function ScreensLocation() {
                               <select
                                 onChange={(event) => {
                                   const newValue = event.target.value;
-
                                   setUpdatedDesign((prevDetails) => ({
                                     ...prevDetails,
                                     designLocationValue: newValue,
@@ -550,11 +562,10 @@ function ScreensLocation() {
                                 value={updatedDesign.engraverValue}
                                 className="p-1 w-3/4 text-sm font-medium text-gray-100 bg-gray-800 border border-gray-300 focus:outline-indigo-500 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                               >
-                                <option value=""></option>
-                                <option className="text-center" value="A01-L01">A01-L01</option>
-                                <option className="text-center" value="A01-L02">A01-L02</option>
-                                <option className="text-center" value="A01-L03">A01-L03</option>
-                                <option className="text-center" value="A01-L04">A01-L04</option>
+                                {currentLocations && 
+                                  currentLocations.map((location) => (
+                                    <option key={location._id}>{location.locationName}</option>
+                                  ))}
                               </select>
                             ) : (
                               <p className="truncate text-md font-mono leading-6 text-white">

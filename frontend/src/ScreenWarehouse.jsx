@@ -1,10 +1,7 @@
 import { Fragment, useEffect, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { Dialog, Transition } from "@headlessui/react";
-import {
-  XMarkIcon,
-  CheckIcon,
-} from "@heroicons/react/24/outline";
+import { XMarkIcon } from "@heroicons/react/24/outline";
 
 import { MdPalette, MdRemoveCircleOutline, MdSave } from "react-icons/md";
 import { FiTool, FiSettings } from "react-icons/fi";
@@ -12,13 +9,11 @@ import { GoLocation } from "react-icons/go";
 import { FaUsers, FaDatabase } from "react-icons/fa";
 import { HiDocumentText } from "react-icons/hi";
 
-import {
-  Bars3Icon,
-  MagnifyingGlassIcon,
-  ClockIcon,
-} from "@heroicons/react/20/solid";
+import { Bars3Icon,MagnifyingGlassIcon } from "@heroicons/react/20/solid";
 
 import axios from "axios";
+
+import { format } from "date-fns";
 
 import DaysDifference from "./CalculateDaysDifference";
 
@@ -38,6 +33,8 @@ function DesignsEngraving() {
   const [isUpdating, setIsUpdating] = useState(false);
   const [designs, setDesigns] = useState([]);
   const [userNeedsToUpdate, setUserNeedsToUpdate] = useState(false);
+  const [searchNumber, setSearchNumber] = useState(0);
+  const [currentLocations, setCurrentLocations] = useState([]);
   const [updatingDesignId, setUpdatingDesignId] = useState("");
   const [updatedDesign, setUpdatedDesign] = useState({
     locationUpdated: false,
@@ -53,7 +50,7 @@ function DesignsEngraving() {
     { name: "Endring Fittings", icon: FiTool, current: false, route: "/ScreensEndringFitting" },
     { name: "Screen Locations", icon: GoLocation, current: false, route: "/ScreensLocation" },
     { name: "Screen Warehouse", icon: FaDatabase, current: true, route: "/ScreenWarehouse" },
-    { name: "Endring Removing", icon: MdRemoveCircleOutline, current: false, route: "/ScreenWarehouse" },
+    { name: "Endring Removing", icon: MdRemoveCircleOutline, current: false, route: "/" },
     { name: "Design Details", icon: HiDocumentText, current: false, route: "/" },
     { name: "Employees", icon: FaUsers, current: false, route: "/" },
     { name: "Settings", icon: FiSettings, current: false, route: "/" },
@@ -63,24 +60,26 @@ function DesignsEngraving() {
     .filter((design) => design.designStatus === "InLocation")
     .reduce((sum, design) => sum + design.numberOfExposedScreens, 0);
 
-  let totalLocations = 3000;
+  let totalLocations = currentLocations.reduce((sum, location) => location.locationCapacity + sum , 0);
 
   let filledPercentage = totalScreens / totalLocations * 100;
+
+  let filteredDesigns = searchNumber ? designs.filter((design) => design.designNumber == searchNumber) : designs;
 
   const stats = [
     {
       statIdx: 1,
-      name: "Total Designs",
+      name: "Available Designs #",
       value: designs.length
     },
     {
       statIdx: 2,
-      name: "Total Screens",
+      name: "Available Screens #",
       value: totalScreens
     },
     {
       statIdx: 3,
-      name: "Total Locations",
+      name: "Available Locations #",
       value: totalLocations
     },
     {
@@ -108,7 +107,18 @@ function DesignsEngraving() {
       }
     };
 
+    const getLocations = async () => {
+      try {
+        const locations = await axios.get(`http://localhost:4000/api/locations/`);
+
+        setCurrentLocations(locations.data);
+      } catch (error) {
+        console.error("Error fetching location details:", error);
+      }
+    };
+
     getScreensOfAwaitingEngravingDesign();
+    getLocations();
 
     setIsUpdating(false);
   }, [isUpdating]);
@@ -356,6 +366,7 @@ function DesignsEngraving() {
                   />
                   <input
                     id="search-field"
+                    onChange={(event) => setSearchNumber(event.target.value)}
                     className="block h-full w-full bg-gray-800 bg-transparent border-0 border-bg-gray-800 py-0 pl-8 pr-0 text-white focus:ring-0 focus:outline-none sm:text-md"
                     placeholder="Search..."
                     type="number"
@@ -416,7 +427,7 @@ function DesignsEngraving() {
             {/* Activity list */}
             <div className="border-y border-white/10 bg-gray-900 pt-6 min-h-screen">
               <h2 className="px-4 text-md font-mono leading-7 text-green-400 sm:px-6 lg:px-8">
-                Available Designs In Location
+                Design Status In Locations
               </h2>
               <table className="mt-6 w-full whitespace-nowrap text-left">
                 <colgroup>
@@ -465,9 +476,9 @@ function DesignsEngraving() {
                     ></th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-500">
+                <tbody className="divide-y divide-gray-800">
                   {designs &&
-                    designs
+                    filteredDesigns
                     .map((design) => (
                       <tr key={design._id}>
                         <td className="py-2 pl-4 pr-8 sm:pl-6 lg:pl-8">
@@ -511,7 +522,7 @@ function DesignsEngraving() {
                               </div>
                             ) : (
                               <p
-                                className={`inline-flex items-center focus:outline-none rounded hover:bg-sky-800 px-2 py-1 text-sm font-medium ring-1 ring-inset 
+                                className={`inline-flex items-center focus:outline-none rounded px-2 py-1 text-sm font-medium ring-1 ring-inset 
                                 ${design.designStatus === "InLocation"
                                     ? "bg-green-500/10 text-green-400 ring-green-500/20"
                                     : "bg-red-500/10 text-red-400 ring-red-500/20"
@@ -536,13 +547,12 @@ function DesignsEngraving() {
                                       updatedLocation: newValue,
                                     }));
                                   }}
-                                  className="p-1 w-full text-sm font-medium text-gray-100 bg-gray-800 border border-gray-300 focus:outline-indigo-500 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                  className="p-1 w-full text-sm text-center font-medium text-gray-100 bg-gray-800 border border-gray-300 focus:outline-indigo-500 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                                 >
-                                  <option value=""></option>
-                                  <option value="A01-L01">A01-L01</option>
-                                  <option value="A01-L02">A01-L02</option>
-                                  <option value="A01-L03">A01-L03</option>
-                                  <option value="A01-L04">A01-L04</option>
+                                  {currentLocations && 
+                                  currentLocations.map((location) => (
+                                    <option key={location._id}>{location.locationName}</option>
+                                  ))}
                                 </select>
                               ) : (
                                 <p className="truncate text-md font-mono leading-6 text-white">
@@ -572,7 +582,7 @@ function DesignsEngraving() {
                                 />
                               ) : (
                                 <p className="truncate text-md font-mono leading-6 text-white">
-                                  {design.lastPrintedDate}
+                                 {design.lastPrintedDate}
                                 </p>
                               )}
                             </div>

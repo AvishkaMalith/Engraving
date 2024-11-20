@@ -32,7 +32,7 @@ function DesignDetailsInput() {
     dpi: "",
     drop: "No Drop",
     specialInstructions: "",
-    location: "Not Assigned",
+    location: "",
     designStatus: "AwaitingEngraving",
     lastPrintedDate: ""
   });
@@ -131,7 +131,7 @@ function DesignDetailsInput() {
         dpi: "",
         drop: "No Drop",
         specialInstructions: "",
-        location: "Not Assigned",
+        location: "",
         designStatus: "AwaitingEngraving",
         lastPrintedDate: ""
       });

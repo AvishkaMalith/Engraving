@@ -52,7 +52,7 @@ const createDesign = async (req, res) => {
   } = req.body;
 
   try {
-    const newDesign = await designModel.insertMany({
+    const newDesign = await designModel.create({
       designNumber,
       exposedStatus,
       orderType,

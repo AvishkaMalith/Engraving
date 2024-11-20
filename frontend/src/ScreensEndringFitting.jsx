@@ -7,7 +7,7 @@ import {
   CheckIcon
 } from "@heroicons/react/24/outline";
 
-import { MdPalette } from "react-icons/md";
+import { MdPalette, MdRemoveCircleOutline } from "react-icons/md";
 import { FiTool, FiSettings } from "react-icons/fi";
 import { GoLocation } from "react-icons/go";
 import { FaUsers, FaDatabase } from "react-icons/fa";
@@ -44,6 +44,7 @@ function ScreensEndringFitting() {
     { name: "Endring Fittings", icon: FiTool, current: true, route: "/ScreensEndringFitting" },
     { name: "Screen Locations", icon: GoLocation, current: false, route: "/ScreensLocation" },
     { name: "Screen Warehouse", icon: FaDatabase, current: false, route: "/ScreenWarehouse" },
+    { name: "Endring Removing", icon: MdRemoveCircleOutline, current: false, route: "/ScreenWarehouse" },
     { name: "Design Details", icon: HiDocumentText, current: false, route: "/" },
     { name: "Employees", icon: FaUsers, current: false, route: "/" },
     { name: "Settings", icon: FiSettings, current: false, route: "/" },
