@@ -4,6 +4,8 @@ const {
   createLocation,
   getLocations,
   getLocation,
+  addToLocation,
+  removeFromLocation,
   updateLocation,
   deleteLocation
 } = require("../controllers/locationController");
@@ -15,15 +17,21 @@ const router = express.Router();
 router.get("/", getLocations);
 
 // Declaring a get request to get a specific location
-router.get("/:id", getLocation);
+router.get("/:locationObjectId", getLocation);
 
-// Declaring a post request to create a new election
+// Declaring a post request to create a new location
 router.post("/", createLocation);
 
-// Declaring a patch request to update an existing election
-router.patch("/:id", updateLocation);
+// Declaring a patch request to add a design number to an existing location
+router.patch("/addToLocation/:locationObjectId/:designNumber", addToLocation);
+
+// Declaring a patch request to remove a design number from an existing location
+router.patch("/removeFromLocation/:locationObjectId/:designNumber", removeFromLocation);
+
+// Declaring a patch request to add a design to an existing location
+router.patch("/:locationObjectId", updateLocation);
 
 // Declaring a delete request to delete an existing election
-router.delete("/:id", deleteLocation);
+router.delete("/:locationObjectId", deleteLocation);
 
 module.exports = router;

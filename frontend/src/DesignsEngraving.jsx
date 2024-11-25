@@ -6,9 +6,9 @@ import {
   CheckIcon,
 } from "@heroicons/react/24/outline";
 
-import { MdPalette } from "react-icons/md";
+import { MdPalette, MdRemoveCircleOutline, MdAddCircleOutline } from "react-icons/md";
+import { FaTools } from "react-icons/fa";
 import { FiTool, FiSettings } from "react-icons/fi";
-import { GoLocation } from "react-icons/go";
 import { FaUsers, FaDatabase } from "react-icons/fa";
 import { HiDocumentText } from "react-icons/hi";
 
@@ -37,6 +37,7 @@ function DesignsEngraving() {
   const [currentScreens, setCurrentScreens] = useState([]);
 
   const [updatedScreen, setUpdatedScreen] = useState({
+    updatedScreenId: "",
     screenBrandAndMeshValue: "",
     completedDateValue: new Date().toISOString().split("T")[0],
     engraverValue: "",
@@ -47,9 +48,11 @@ function DesignsEngraving() {
 
   const navigation = [
     { name: "Designs", icon: MdPalette, current: true, route: "/" },
-    { name: "Endring Fittings", icon: FiTool, current: false, route: "/ScreensEndringFitting" },
-    { name: "Screen Locations", icon: GoLocation, current: false, route: "/ScreensLocation" },
-    { name: "Screen Warehouse", icon: FaDatabase, current: false, route: "/ScreenWarehouse" },
+    { name: "Endring Fitting", icon: FiTool, current: false, route: "/EndringFitting" },
+    { name: "Add Locations", icon: MdAddCircleOutline, current: false, route: "/AddLocations" },
+    { name: "Screen Locations", icon: FaDatabase, current: false, route: "/ScreensLocation" },
+    { name: "Remove Locations", icon: MdRemoveCircleOutline, current: false, route: "/" },
+    { name: "Endring Removing", icon: FaTools, current: false, route: "/" },
     { name: "Design Details", icon: HiDocumentText, current: false, route: "/" },
     { name: "Employees", icon: FaUsers, current: false, route: "/" },
     { name: "Settings", icon: FiSettings, current: false, route: "/" },
@@ -113,6 +116,45 @@ function DesignsEngraving() {
   ];
 
   useEffect(() => {
+
+    const updateDesignStatus = async () => {
+      try {
+        // Fetch the engraving-completed screens for the current design
+        const response = await axios.get(
+          `http://localhost:4000/api/screens/${currentDesign._id}/search`,
+          {
+            params: {
+              screenStatus: "AwaitingEndringFitting",
+            },
+          }
+        );
+
+        // Extract screen data from the response
+        const engravingCompletedScreens = response.data;
+
+        // Update design status based on the number of engraving-completed screens
+        if (engravingCompletedScreens.length === 0) {
+          await axios.patch(
+            `http://localhost:4000/api/designs/${currentDesign._id}`,
+            { designStatus: "AwaitingEngraving" }
+          );
+        } else if (engravingCompletedScreens.length > 0 &&
+          engravingCompletedScreens.length < currentDesign.numberOfExposedScreens) {
+          await axios.patch(
+            `http://localhost:4000/api/designs/${currentDesign._id}`,
+            { designStatus: "BeingEngraved" }
+          );
+        } else if (engravingCompletedScreens.length === currentDesign.numberOfExposedScreens) {
+          await axios.patch(
+            `http://localhost:4000/api/designs/${currentDesign._id}`,
+            { designStatus: "EngravingCompleted" }
+          );
+        }
+      } catch (error) {
+        console.error("Error updating design status:", error.message);
+      }
+    };
+
     const getScreensOfAwaitingEngravingDesign = async () => {
       try {
         const screenDetails = await axios.get(
@@ -120,45 +162,6 @@ function DesignsEngraving() {
         );
 
         setCurrentScreens(screenDetails.data.screens);
-
-      } catch (error) {
-        console.error("Error fetching screen details:", error);
-      }
-    };
-
-    const updateDesignStatus = async () => {
-      try {
-        const engravingCompletedScreens = await axios.get(
-          `http://localhost:4000/api/screens/${currentDesign._id}/search`, {
-          params: {
-            screenStatus: "AwaitingEndringFitting"
-          }
-        }
-        );
-        
-        if (engravingCompletedScreens.length === 0) {
-          await axios.patch(
-            `http://localhost:4000/api/designs/${currentDesign._id}`, {
-            designStatus: "AwaitingEngraving"
-           }
-          );
-        }
-
-        if (engravingCompletedScreens.data.length > 0) {
-          await axios.patch(
-            `http://localhost:4000/api/designs/${currentDesign._id}`, {
-            designStatus: "BeingEngraved"
-            }
-          );
-        }
-
-        if (engravingCompletedScreens.data.length === currentDesign.numberOfExposedScreens) {
-          await axios.patch(
-            `http://localhost:4000/api/designs/${currentDesign._id}`, {
-            designStatus: "EngravingCompleted"
-            }
-          );
-        }
 
       } catch (error) {
         console.error("Error fetching screen details:", error);
@@ -402,13 +405,13 @@ function DesignsEngraving() {
                   />
                 </div>
               </form>
-              <button
+              {/* <button
                 type="button"
                 className="inline-flex items-center gap-x-2 h-1/2 my-4 rounded-md bg-sky-900 px-3 py-2 text-md font-mono font-bold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
               >
-                {/* <PencilIcon className="-ml-0.5 h-5 w-5" aria-hidden="true" /> */}
+                <PencilIcon className="-ml-0.5 h-5 w-5" aria-hidden="true" />
                 Change
-              </button>
+              </button> */}
               {/* <button               // Replace these buttons with save design details buttons
                 type="button"
                 className="inline-flex items-center justify-center mt-4 h-1/2 gap-x-1.5 rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
@@ -458,14 +461,14 @@ function DesignsEngraving() {
               <h2 className="px-4 text-md font-mono leading-7 text-green-400 sm:px-6 lg:px-8">
                 Screen Details
               </h2>
-              <table className="mt-6 w-full whitespace-nowrap text-left">
+              <table className="mt-6 w-full whitespace-nowrap text-left ">
                 <colgroup>
-                  <col className="w-1/8 sm:w-1/4" />
-                  <col className="lg:w-1/4" />
-                  <col className="lg:w-1/5" />
-                  <col className="lg:w-1/4" />
-                  <col className="lg:w-1/6" />
-                  <col className="lg:w-1/12" />
+                  <col className="w-1/6" />
+                  <col className="w-1/6" />
+                  <col className="w-1/6" />
+                  <col className="w-1/6" />
+                  <col className="w-1/6" />
+                  <col className="w-1/6" />
                 </colgroup>
                 <thead className="border-b border-white/10 text-md leading-6 text-gray-400">
                   <tr>
@@ -477,7 +480,7 @@ function DesignsEngraving() {
                     </th>
                     <th
                       scope="col"
-                      className="hidden py-2 pl-0 pr-8 font-mono sm:table-cell"
+                      className="hidden py-2 pl-0 pr-4 font-mono sm:table-cell"
                     >
                       Status
                     </th>
@@ -485,11 +488,11 @@ function DesignsEngraving() {
                       scope="col"
                       className="md:hidden py-2 pl-0 pr-8 font-mono sm:table-cell lg:table-cell"
                     >
-                      Brand & Mesh / Use
+                      Brand & Mesh/Use
                     </th>
                     <th
                       scope="col"
-                      className="py-2 pl-0 pr-4 text-right font-mono sm:pr-8 sm:text-left lg:pr-20"
+                      className="py-2 pl-4 pr-4 text-right font-mono sm:pr-8 sm:text-left lg:pr-20"
                     >
                       Completed Date
                     </th>
@@ -530,24 +533,26 @@ function DesignsEngraving() {
                                 </span>
                                 <button
                                   onClick={() => {
-                                    updateScreenExposedType(
-                                      screen._id,
-                                      screen.exposedType === "New"
-                                        ? "Use"
-                                        : "New"
-                                    );
+                                    updateScreenExposedType(screen._id, screen.exposedType === "New" ? "Use" : "New");
                                     setIsUpdating(true);
                                   }}
-                                  className={`inline-flex items-center focus:outline-none rounded hover:bg-sky-800 px-2 py-1 text-sm font-medium ring-1 ring-inset ${screen.exposedType === "Use"
-                                    ? "bg-green-500/10 text-green-400 ring-green-500/20"
-                                    : "bg-blue-500/10 text-blue-400 ring-blue-500/20"
+                                  className={`inline-flex items-center focus:outline-none rounded hover:bg-sky-800 px-2 py-1 text-sm font-medium ring-1 ring-inset 
+                                    ${screen.exposedType === "Use"
+                                      ? "bg-green-500/10 text-green-400 ring-green-500/20"
+                                      : "bg-blue-500/10 text-blue-400 ring-blue-500/20"
                                     }`}
                                 >
                                   {screen.exposedType === "New" ? "Use" : "New"}
                                 </button>
                               </div>
                             ) : (
-                              <p className="truncate text-md font-mono leading-6 text-white">
+                              <p
+                                className={`inline-flex items-center focus:outline-none rounded px-2 py-1 text-sm font-medium ring-1 ring-inset 
+                                ${screen.exposedType === "New"
+                                    ? "bg-green-500/10 text-green-400 ring-green-500/20"
+                                    : "bg-blue-500/10 text-blue-400 ring-blue-500/20"
+                                  }`}
+                              >
                                 {screen.exposedType}
                               </p>
                             )}
@@ -561,16 +566,14 @@ function DesignsEngraving() {
                                   <select
                                     onChange={(event) => {
                                       const newValue = event.target.value;
-
                                       setUpdatedScreen((prevDetails) => ({
                                         ...prevDetails,
                                         screenBrandAndMeshValue: newValue,
+                                        updatedScreenId: screen._id
                                       }));
                                     }}
-                                    value={
-                                      updatedScreen.screenBrandAndMeshValue
-                                    }
-                                    className="p-1 w-full text-sm font-medium text-gray-100 bg-gray-800 border border-gray-300 focus:outline-indigo-500 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    value={updatedScreen.screenBrandAndMeshValue}
+                                    className="p-1 text-sm font-medium text-gray-100 bg-gray-800 border border-gray-300 focus:outline-indigo-500 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                                   >
                                     <option value=""></option>
                                     <option value="125CHINA">125 CHINA</option>
@@ -581,15 +584,13 @@ function DesignsEngraving() {
                                 ) : (
                                   <input
                                     type="text"
-                                    value={
-                                      updatedScreen.screenBrandAndMeshValue
-                                    }
+                                    value={updatedScreen.screenBrandAndMeshValue}
                                     onChange={(event) => {
                                       const newValue = event.target.value;
-
                                       setUpdatedScreen((prevDetails) => ({
                                         ...prevDetails,
                                         screenBrandAndMeshValue: newValue,
+                                        updatedScreenId: screen._id
                                       }));
                                     }}
                                     className="p-1 w-full text-sm font-medium text-gray-100 bg-gray-800 border border-gray-300 focus:outline-indigo-500 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -603,7 +604,7 @@ function DesignsEngraving() {
                             </div>
                           </div>
                         </td>
-                        <td className="py-4 pl-0 pr-4 text-sm leading-6 sm:pr-8 lg:pr-20">
+                        <td className="py-4 pl-4 pr-4 text-sm leading-6 sm:pr-8 lg:pr-12">
                           <div className="flex items-center justify-end gap-x-2 sm:justify-start">
                             <div className="font-mono text-lg leading-6 text-white">
                               {screen.screenStatus === "AwaitingEngraving" ? (
@@ -614,7 +615,6 @@ function DesignsEngraving() {
                                   value={updatedScreen.completedDateValue}
                                   onChange={(event) => {
                                     const newValue = event.target.value;
-
                                     setUpdatedScreen((prevDetails) => ({
                                       ...prevDetails,
                                       completedDateValue: newValue,
@@ -641,13 +641,13 @@ function DesignsEngraving() {
                                 }));
                               }}
                               value={updatedScreen.engraverValue}
-                              className="p-1 w-full text-sm font-medium text-gray-100 bg-gray-800 border border-gray-300 focus:outline-indigo-500 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              className="p-1 text-sm font-medium text-gray-100 bg-gray-800 border border-gray-300 focus:outline-indigo-500 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                             >
                               <option value=""></option>
-                              <option value="Person-A">Person-A</option>
-                              <option value="Person-B">Person-B</option>
-                              <option value="Person-C">Person-C</option>
-                              <option value="Person-D">Person-D</option>
+                              <option value="Person-A">Person-A-40250</option>
+                              <option value="Person-B">Person-B-40521</option>
+                              <option value="Person-C">Person-C-40522</option>
+                              <option value="Person-D">Person-D-40523</option>
                             </select>
                           ) : (
                             <p className="truncate text-md font-mono leading-6 text-white">
@@ -678,7 +678,7 @@ function DesignsEngraving() {
                             ) : (
                               <button
                                 type="button"
-                                className="inline-flex items-center justify-start gap-x-2 rounded-md bg-gray-700 px-3 py-2 text-md font-mono font-bold text-white shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+                                className="inline-flex items-center justify-start gap-x-2 rounded-md bg-green-700 px-3 py-2 text-md font-mono font-bold text-white shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
                                 onClick={() => {
                                   updateMeshDateEngraver(
                                     screen._id,
@@ -689,7 +689,7 @@ function DesignsEngraving() {
                               >
                                 Exposed
                                 <CheckIcon
-                                  className="-ml-0.5 h-5 w-5 text-green-500"
+                                  className="-ml-0.5 h-5 w-5 text-yellow-500"
                                   aria-hidden="true"
                                 />
                               </button>

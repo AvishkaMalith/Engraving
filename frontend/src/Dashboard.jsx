@@ -12,9 +12,9 @@ import {
   ArrowRightCircleIcon,
 } from "@heroicons/react/20/solid";
 
-import { MdPalette, MdRemoveCircleOutline } from "react-icons/md";
+import { MdPalette, MdRemoveCircleOutline, MdAddCircleOutline } from "react-icons/md";
+import { FaTools } from "react-icons/fa";
 import { FiTool, FiSettings } from "react-icons/fi";
-import { GoLocation } from "react-icons/go";
 import { FaUsers, FaDatabase } from "react-icons/fa";
 import { HiDocumentText } from "react-icons/hi";
 
@@ -35,10 +35,11 @@ function Dashboard() {
 
   const navigation = [
     { name: "Designs", icon: MdPalette, current: true, route: "/" },
-    { name: "Endring Fittings", icon: FiTool, current: false, route: "/ScreensEndringFitting" },
-    { name: "Screen Locations", icon: GoLocation, current: false, route: "/ScreensLocation" },
-    { name: "Screen Warehouse", icon: FaDatabase, current: false, route: "/ScreenWarehouse" },
-    { name: "Endring Removing", icon: MdRemoveCircleOutline, current: false, route: "/ScreenWarehouse" },
+    { name: "Endring Fitting", icon: FiTool, current: false, route: "/EndringFitting" },
+    { name: "Add Locations", icon: MdAddCircleOutline, current: false, route: "/AddLocations" },
+    { name: "Screen Locations", icon: FaDatabase, current: false, route: "/ScreenLocations" },
+    { name: "Remove Locations", icon: MdRemoveCircleOutline, current: false, route: "/" },
+    { name: "Endring Removing", icon: FaTools, current: false, route: "/" },
     { name: "Design Details", icon: HiDocumentText, current: false, route: "/" },
     { name: "Employees", icon: FaUsers, current: false, route: "/" },
     { name: "Settings", icon: FiSettings, current: false, route: "/" },
@@ -391,20 +392,20 @@ function Dashboard() {
 
             {/* Activity list */}
             <div className="border-y border-white/10 bg-gray-900 pt-6 min-h-screen">
-              <h2 className="px-4 text-md font-mono leading-7 text-green-400 sm:px-6 lg:px-8">
+              <h2 className="px-4 text-lg font-mono leading-7 text-green-400 sm:px-6 lg:px-8">
                 Latest Designs
               </h2>
               <table className="mt-6 w-full whitespace-nowrap text-left">
                 <colgroup>
-                  <col className="w-1/7 sm:w-2/12" />
-                  <col className="lg:w-1/7" />
-                  <col className="lg:w-1/7" />
-                  <col className="lg:w-1/7" />
-                  <col className="lg:w-1/7" />
-                  <col className="lg:w-1/7" />
-                  <col className="lg:w-1/7" />
+                  <col className="w-1/7" />
+                  <col className="w-1/7" />
+                  <col className="w-1/7" />
+                  <col className="w-1/7" />
+                  <col className="w-1/7" />
+                  <col className="w-1/7" />
+                  <col className="w-1/7" />
                 </colgroup>
-                <thead className="border-b border-white/10 md:text-sm lg:text-md leading-6 text-gray-400">
+                <thead className="border-b border-white/10 lg:text-md leading-6 text-gray-400">
                   <tr>
                     <th
                       scope="col"
@@ -524,7 +525,7 @@ function Dashboard() {
                                 inline-flex items-center justify-start gap-x-2 rounded-md  px-3 py-2 text-md font-semibold shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2`}
                               onClick={() => navigate(`/DesignsEngraving`, { state: { design } })}
                             >
-                              {design.designStatus === `AwaitingEngraving` ? "Start Engraving" : "Continue Engraving"}
+                              {design.designStatus === `AwaitingEngraving` ? "Start" : "Continue"}
                               <ArrowRightCircleIcon
                                 className="-ml-0.5 h-5 w-5 text-green-500"
                                 aria-hidden="true"

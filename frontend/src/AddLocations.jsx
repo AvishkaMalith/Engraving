@@ -1,21 +1,26 @@
 import { Fragment, useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { RouterProvider, useNavigate } from "react-router-dom";
 import { Dialog, Transition } from "@headlessui/react";
-import { XMarkIcon } from "@heroicons/react/24/outline";
+import {
+  XMarkIcon,
+  PlusIcon,
+  CheckIcon,
+} from "@heroicons/react/24/outline";
 
-import { MdPalette, MdRemoveCircleOutline, MdSave } from "react-icons/md";
+import { MdPalette, MdRemoveCircleOutline, MdAddCircleOutline } from "react-icons/md";
+import { FaTools } from "react-icons/fa";
 import { FiTool, FiSettings } from "react-icons/fi";
-import { GoLocation } from "react-icons/go";
 import { FaUsers, FaDatabase } from "react-icons/fa";
 import { HiDocumentText } from "react-icons/hi";
 
-import { Bars3Icon,MagnifyingGlassIcon } from "@heroicons/react/20/solid";
-
+import {
+  Bars3Icon,
+  MagnifyingGlassIcon,
+  ClockIcon,
+} from "@heroicons/react/20/solid";
 import axios from "axios";
 
-import { format } from "date-fns";
-
-import DaysDifference from "./CalculateDaysDifference";
+import SuggestLocation from "./SuggestLocation";
 
 const teams = [
   { id: 1, name: "Planetaria", href: "#", initial: "P", current: false },
@@ -27,81 +32,60 @@ function classNames(...classes) {
   return classes.filter(Boolean).join(" ");
 }
 
-function DesignsEngraving() {
+function AddLocations() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const [isUpdating, setIsUpdating] = useState(false);
-  const [designs, setDesigns] = useState([]);
-  const [userNeedsToUpdate, setUserNeedsToUpdate] = useState(false);
-  const [searchNumber, setSearchNumber] = useState(0);
+  const [currentDesigns, setCurrentDesigns] = useState([]);
   const [currentLocations, setCurrentLocations] = useState([]);
-  const [updatingDesignId, setUpdatingDesignId] = useState("");
+
   const [updatedDesign, setUpdatedDesign] = useState({
-    locationUpdated: false,
-    updatedLocation: "",
-    lastPrintedDateUpdated: false,
-    updatedLastPrintedDate: ""
+    designLocationValue: "",
+    designLocationId: "",
+    designStatusValue: "AwaitingLocation"
   });
 
   const navigate = useNavigate();
 
   const navigation = [
     { name: "Designs", icon: MdPalette, current: false, route: "/" },
-    { name: "Endring Fittings", icon: FiTool, current: false, route: "/ScreensEndringFitting" },
-    { name: "Screen Locations", icon: GoLocation, current: false, route: "/ScreensLocation" },
-    { name: "Screen Warehouse", icon: FaDatabase, current: true, route: "/ScreenWarehouse" },
-    { name: "Endring Removing", icon: MdRemoveCircleOutline, current: false, route: "/" },
+    { name: "Endring Fitting", icon: FiTool, current: false, route: "/EndringFitting" },
+    { name: "Add Locations", icon: MdAddCircleOutline, current: true, route: "/AddLocations" },
+    { name: "Screen Locations", icon: FaDatabase, current: false, route: "/ScreenLocations" },
+    { name: "Remove Locations", icon: MdRemoveCircleOutline, current: false, route: "/" },
+    { name: "Endring Removing", icon: FaTools, current: false, route: "/" },
     { name: "Design Details", icon: HiDocumentText, current: false, route: "/" },
     { name: "Employees", icon: FaUsers, current: false, route: "/" },
     { name: "Settings", icon: FiSettings, current: false, route: "/" },
   ];
 
-  let totalScreens = designs
-    .filter((design) => design.designStatus === "InLocation")
-    .reduce((sum, design) => sum + design.numberOfExposedScreens, 0);
-
-  let totalLocations = currentLocations.reduce((sum, location) => location.locationCapacity + sum , 0);
-
-  let filledPercentage = totalScreens / totalLocations * 100;
-
-  let filteredDesigns = searchNumber ? designs.filter((design) => design.designNumber == searchNumber) : designs;
-
   const stats = [
     {
       statIdx: 1,
-      name: "Available Designs #",
-      value: designs.length
+      name: "Awaiting Location Designs #",
+      value: currentDesigns.length,
     },
     {
       statIdx: 2,
-      name: "Available Screens #",
-      value: totalScreens
-    },
-    {
-      statIdx: 3,
-      name: "Available Locations #",
-      value: totalLocations
-    },
-    {
-      statIdx: 4,
-      name: "Locations Filled %",
-      value: filledPercentage.toFixed(3) + " %"
+      name: "Awaiting Location Screens #",
+      value: currentDesigns.reduce((sum, design) => sum + design.numberOfExposedScreens, 0)
     }
   ];
 
   useEffect(() => {
-    const getScreensOfAwaitingEngravingDesign = async () => {
+
+    const getDesignDetails = async () => {
       try {
-        const screenDetails = await axios.get(
-          `http://localhost:4000/api/designs/search`, {
-          params: {
-            designStatus: ["InLocation", "AwaitingDeEndring"]
+        const designDetails = await axios.get(
+          `http://localhost:4000/api/designs/search`,
+          {
+            params: {
+              designStatus: ["AwaitingLocation", "AwaitingDeEndring"]
+            },
           }
-        }
         );
 
-        setDesigns(screenDetails.data);
-
+        setCurrentDesigns(designDetails.data);
       } catch (error) {
         console.error("Error fetching screen details:", error);
       }
@@ -117,63 +101,86 @@ function DesignsEngraving() {
       }
     };
 
-    getScreensOfAwaitingEngravingDesign();
+    getDesignDetails();
     getLocations();
 
     setIsUpdating(false);
+
   }, [isUpdating]);
 
-  const updateDesignStatus = async (designId, newExposedType) => {
+  const updateScreenDetails = async (designId, designStatusValue) => {
     try {
+      
+      const lastPrintedDateValue = designStatusValue === "InLocation" ? "Not Printed" : "";
+      
       await axios.patch(`http://localhost:4000/api/designs/${designId}`, {
-        designStatus: newExposedType,
+        // Updating screen details with their values
+        location: updatedDesign.designLocationValue,
+        designStatus: designStatusValue,
+        lastPrintedDate : lastPrintedDateValue
       });
-    } catch (error) {
-      console.error("Error updating screen details:", error);
-    }
-  };
 
-  const updateLocationAndPrintedDate = async (designId, designStatus) => {
-    try {
-
-      if (designStatus === "InLocation") {
-        if (updatedDesign.locationUpdated && updatedDesign.lastPrintedDateUpdated) {
-          await axios.patch(`http://localhost:4000/api/designs/${designId}`, {
-            location: updatedDesign.updatedLocation,
-            lastPrintedDate: updatedDesign.updatedLastPrintedDate
-          });
-        }
-        if (updatedDesign.locationUpdated) {
-          await axios.patch(`http://localhost:4000/api/designs/${designId}`, {
-            location: updatedDesign.updatedLocation
-          });
-        }
-        if (updatedDesign.lastPrintedDateUpdated) {
-          await axios.patch(`http://localhost:4000/api/designs/${designId}`, {
-            lastPrintedDate: updatedDesign.updatedLastPrintedDate
-          });
-        }
-      }
-
-      if (designStatus === "AwaitingDeEndring") {
-        await axios.patch(`http://localhost:4000/api/designs/${designId}`, {
-          location: ""
-        });
-      }
-
-      setUpdatedDesign((prevDetails) => ({
-        ...prevDetails,
-        locationUpdated: false,
-        updatedLocation: "",
-        lastPrintedDateUpdated: false,
-        updatedLastPrintedDate: ""
-      }));
+      setUpdatedDesign({
+        designLocationValue: "",
+        designStatusValue: "AwaitingEndringFitting",
+      });
 
       setIsUpdating(false);
     } catch (error) {
       console.error("Error updating screen details:", error);
     }
   };
+
+  const addDesignToLocation = async (designNumber) => {
+    try {
+      const addDesign = await axios.patch(`http://localhost:4000/api/locations/addToLocation/${updatedDesign.designLocationId}/${designNumber}`);
+
+      if (addDesign) {
+        setUpdatedDesign((prevDetails) => ({
+          ...prevDetails,
+          designLocationId: ""
+        }))
+      }
+    } catch (error) {
+      console.error("Error adding design to the location", error);
+    }
+  }
+
+  const updateScreensStatus = async (currentDesignNumber, screenStatusValue) => {
+    try {
+      let filterStatus =
+        screenStatusValue === "InLocation" ? "AwaitingLocation" : "InLocation";
+
+      // Fetch screens based on the current filterStatus
+      const { data: screens } = await axios.get(
+        `http://localhost:4000/api/screens/search`,
+        {
+          params: {
+            query: currentDesignNumber,
+            screenStatus: filterStatus,
+          },
+        }
+      );
+
+      // Perform patch operations on the fetched screens
+      const screenPromises = screens.map((screen) =>
+        axios.patch(`http://localhost:4000/api/screens/${screen._id}`, {
+          screenStatus: screenStatusValue,
+        })
+      );
+
+      // Run all requests in parallel
+      await Promise.all(screenPromises);
+
+      setIsUpdating(false);
+      setIsUpdating(true);
+
+      console.log("Screens updated successfully!");
+    } catch (error) {
+      console.error("Error updating screen details:", error);
+    }
+  };
+
 
   return (
     <>
@@ -264,6 +271,31 @@ function DesignsEngraving() {
                             ))}
                           </ul>
                         </li>
+                        <li>
+                          <div className="text-xs font-semibold leading-6 text-gray-400">
+                            Your teams
+                          </div>
+                          <ul role="list" className="-mx-2 mt-2 space-y-1">
+                            {teams.map((team) => (
+                              <li key={team.name}>
+                                <a
+                                  href={team.href}
+                                  className={classNames(
+                                    team.current
+                                      ? "bg-gray-800 text-white"
+                                      : "text-gray-400 hover:text-white hover:bg-gray-800",
+                                    "group flex gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold"
+                                  )}
+                                >
+                                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border border-gray-700 bg-gray-800 text-[0.625rem] font-medium text-gray-400 group-hover:text-white">
+                                    {team.initial}
+                                  </span>
+                                  <span className="truncate">{team.name}</span>
+                                </a>
+                              </li>
+                            ))}
+                          </ul>
+                        </li>
                         <li className="-mx-6 mt-auto">
                           <a
                             href="#"
@@ -323,6 +355,31 @@ function DesignsEngraving() {
                     ))}
                   </ul>
                 </li>
+                {/* <li>
+                  <div className="text-xs font-semibold leading-6 text-gray-400">
+                    Your teams
+                  </div>
+                  <ul role="list" className="-mx-2 mt-2 space-y-1">
+                    {teams.map((team) => (
+                      <li key={team.name}>
+                        <a
+                          href={team.href}
+                          className={classNames(
+                            team.current
+                              ? "bg-gray-800 text-white"
+                              : "text-gray-400 hover:text-white hover:bg-gray-800",
+                            "group flex gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold"
+                          )}
+                        >
+                          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border border-gray-700 bg-gray-800 text-[0.625rem] font-medium text-gray-400 group-hover:text-white">
+                            {team.initial}
+                          </span>
+                          <span className="truncate">{team.name}</span>
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                </li> */}
                 <li className="-mx-6 mt-auto">
                   <a
                     href="#"
@@ -366,21 +423,21 @@ function DesignsEngraving() {
                   />
                   <input
                     id="search-field"
-                    onChange={(event) => setSearchNumber(event.target.value)}
                     className="block h-full w-full bg-gray-800 bg-transparent border-0 border-bg-gray-800 py-0 pl-8 pr-0 text-white focus:ring-0 focus:outline-none sm:text-md"
                     placeholder="Search..."
-                    type="number"
+                    type="search"
                     name="search"
                   />
                 </div>
               </form>
               {/* <button
                 type="button"
-                className="inline-flex items-center gap-x-2 h-1/2 my-4 rounded-md bg-sky-900 px-3 py-2 text-md font-mono font-bold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+                className="inline-flex items-center justify-center mt-4 h-1/2 gap-x-1.5 rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
               >
-                Change
-              </button> */}
-              {/* <button               // Replace these buttons with save design details buttons
+                <PlusIcon className="-ml-0.5 h-5 w-5" aria-hidden="true" />
+                New Design
+              </button>
+              <button
                 type="button"
                 className="inline-flex items-center justify-center mt-4 h-1/2 gap-x-1.5 rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
               >
@@ -393,7 +450,7 @@ function DesignsEngraving() {
           <main>
             <header>
               {/* Stats */}
-              <div className="grid grid-cols-1 bg-gray-900 sm:grid-cols-4 lg:grid-cols-4">
+              <div className="grid grid-cols-1 bg-gray-900 sm:grid-cols-2 lg:grid-cols-2">
                 {stats.map((stat, statIdx) => (
                   <div
                     key={stat.name}
@@ -427,16 +484,16 @@ function DesignsEngraving() {
             {/* Activity list */}
             <div className="border-y border-white/10 bg-gray-900 pt-6 min-h-screen">
               <h2 className="px-4 text-md font-mono leading-7 text-green-400 sm:px-6 lg:px-8">
-                Design Status In Locations
+                Designs Awaiting Locations
               </h2>
               <table className="mt-6 w-full whitespace-nowrap text-left">
                 <colgroup>
-                  <col className="w-1/8 sm:w-1/6" />
-                  <col className="lg:w-1/6" />
-                  <col className="lg:w-1/6" />
-                  <col className="lg:w-1/6" />
-                  <col className="lg:w-1/6" />
-                  <col className="lg:w-1/12" />
+                  <col className="w-1/5" />
+                  <col className="w-1/6" />
+                  <col className="w-1/6" />
+                  <col className="w-1/6" />
+                  <col className="w-1/6" />
+                  <col className="w-1/6" />
                 </colgroup>
                 <thead className="border-b border-white/10 text-md leading-6 text-gray-400">
                   <tr>
@@ -450,183 +507,140 @@ function DesignsEngraving() {
                       scope="col"
                       className="hidden py-2 pl-0 pr-8 font-mono sm:table-cell"
                     >
-                      Status
+                      Colors #
                     </th>
                     <th
                       scope="col"
                       className="md:hidden py-2 pl-0 pr-8 font-mono sm:table-cell lg:table-cell"
                     >
-                      Location
-                    </th>
-                    <th
-                      scope="col"
-                      className="py-2 pl-0 pr-4 text-right font-mono sm:pr-8 sm:text-left lg:pr-20"
-                    >
-                      Last Printed Date
+                      Screens #
                     </th>
                     <th
                       scope="col"
                       className="hidden py-2 pl-0 pr-8 font-mono md:table-cell lg:pr-20"
                     >
-                      Days #
+                      Suggested Location
                     </th>
                     <th
                       scope="col"
-                      className="hidden py-2 pl-0 pr-4 text-right font-mono sm:table-cell sm:pr-6 lg:pr-8"
+                      className="hidden py-2 pl-0 pr-8 font-mono md:table-cell lg:pr-20"
+                    >
+                      Actual Location
+                    </th>
+                    <th
+                      scope="col"
+                      className="hidden py-2 pl-0 pr-4 text-right font-mono sm:table-cell sm:pr-4 lg:pr-8"
                     ></th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-800">
-                  {designs &&
-                    filteredDesigns
-                    .map((design) => (
-                      <tr key={design._id}>
-                        <td className="py-2 pl-4 pr-8 sm:pl-6 lg:pl-8">
-                          <div className="flex items-center gap-x-4">
-                            <div className="truncate text-lg font-mono leading-6 text-white">
-                              {design.designNumber + " / " + design.numberOfColors}
-                            </div>
-                          </div>
-                        </td>
-                        <td className="hidden py-2 pl-0 pr-4 sm:table-cell sm:pr-8">
-                          <div className="flex gap-x-3">
-                            {userNeedsToUpdate && design._id === updatingDesignId ? (
-                              <div>
-                                <span
-                                  className={`inline-flex items-center rounded-md px-2 py-1 text-sm font-medium ring-1 ring-inset 
-                                    ${design.designStatus === "InLocation"
-                                      ? "bg-green-500/10 text-green-400 ring-green-500/20"
-                                      : "bg-red-500/10 text-red-400 ring-red-500/20"
-                                    }`}
-                                >
-                                  {design.designStatus === "InLocation" ? "Available" : "Removed"}
-                                </span>
-                                <button
-                                  onClick={() => {
-                                    updateDesignStatus(
-                                      design._id,
-                                      design.designStatus === "InLocation"
-                                        ? "AwaitingDeEndring"
-                                        : "InLocation"
-                                    );
-                                    setIsUpdating(true);
-                                  }}
-                                  className={`inline-flex items-center focus:outline-none rounded px-2 py-1 text-sm font-medium ring-1 ring-inset 
-                                    ${design.designStatus === "InLocation"
-                                      ? "bg-red-500/10 text-red-400 ring-red-500/20 hover:bg-red-200/20"
-                                      : "bg-green-500/10 text-green-400 ring-green-500/20 hover:bg-green-200/20"
-                                    }`}
-                                >
-                                  {design.designStatus === "InLocation" ? "Remove" : "Available"}
-                                </button>
+                <tbody className="divide-y divide-white/5">
+                  {currentDesigns &&
+                    currentDesigns
+                      .map((design) => (
+                        <tr key={design._id}>
+                          <td className="py-4 pl-4 pr-8 sm:pl-6 lg:pl-8">
+                            <div className="flex items-center gap-x-4">
+                              <div className="truncate text-md font-mono leading-6 text-white">
+                                {design.designNumber}
                               </div>
-                            ) : (
-                              <p
-                                className={`inline-flex items-center focus:outline-none rounded px-2 py-1 text-sm font-medium ring-1 ring-inset 
-                                ${design.designStatus === "InLocation"
-                                    ? "bg-green-500/10 text-green-400 ring-green-500/20"
-                                    : "bg-red-500/10 text-red-400 ring-red-500/20"
-                                  }`}
+                            </div>
+                          </td>
+                          <td className="hidden py-4 pl-0 pr-4 sm:table-cell sm:pr-8">
+                            <div className="flex gap-x-3">
+                              <p className="truncate text-md font-mono leading-6 text-white">
+                                {design.numberOfColors}
+                              </p>
+                            </div>
+                          </td>
+                          <td className="py-4 pl-0 pr-2 sm:table-cell md:hidden lg:table-cell sm:pr-2">
+                            <div className="flex gap-x-3">
+                              <div className="font-mono text-lg leading-6 text-white">
+                                <p className="truncate text-md font-mono leading-6 text-white">
+                                  {design.numberOfExposedScreens}
+                                </p>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="py-4 pl-0 pr-4 text-sm leading-6 sm:pr-8 lg:pr-20">
+                            <div className="flex items-center justify-end gap-x-2 sm:justify-start">
+                              <div className="font-mono text-lg leading-6 text-white">
+                                <p className="truncate text-md font-mono leading-6 text-white">
+                                  <SuggestLocation givenNumberOfScreens={design.numberOfExposedScreens} />
+                                </p>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="hidden py-4 pl-0 pr-8 text-lg leading-6 font-mono text-white md:table-cell lg:pr-18">
+                            {design.designStatus === "AwaitingLocation" ? (
+                              <select
+                                onChange={(event) => {
+                                  const locationId = event.target.value;
+                                  const location = currentLocations
+                                    .find((location) => location._id == locationId)
+                                    .locationName;
+                                  setUpdatedDesign((prevDetails) => ({
+                                    ...prevDetails,
+                                    designLocationId: locationId,
+                                    designLocationValue: location
+                                  }));
+                                }}
+                                className="p-1 w-3/4 text-sm text-center font-medium text-gray-100 bg-gray-800 border border-gray-300 focus:outline-indigo-500 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                               >
-                                {design.designStatus === "InLocation" ? "Available" : "Removed"}
+                                <option value={""}></option>
+                                {currentLocations &&
+                                  currentLocations.map((location) => (
+                                    <option key={location._id} value={location._id}>
+                                      {location.locationName}
+                                    </option>
+                                  ))}
+                              </select>
+                            ) : (
+                              <p className="truncate text-md font-mono leading-6 text-white">
+                                {design.location}
                               </p>
                             )}
-                          </div>
-                        </td>
-                        <td className="py-2 pl-0 pr-2 sm:table-cell md:hidden lg:table-cell sm:pr-2">
-                          <div className="flex gap-x-3">
-                            <div className="font-mono text-lg leading-6 text-white lg:w-3/4 md:w-1/2">
-                              {design.designStatus === "InLocation" && userNeedsToUpdate && design._id === updatingDesignId ? (
-                                <select
-                                  defaultValue={design.location}
-                                  onChange={(event) => {
-                                    const newValue = event.target.value;
-                                    setUpdatedDesign((prevDetails) => ({
-                                      ...prevDetails,
-                                      locationUpdated: true,
-                                      updatedLocation: newValue,
-                                    }));
+                          </td>
+                          <td className="hidden py-4 pl-0 pr-8 text-sm leading-6 text-white md:table-cell md:pr-12 sm:pr-20">
+                            <div className="flex items-start justify-start">
+                              {design.designStatus ===
+                                "AwaitingLocation" ? (
+                                <button
+                                  type="button"
+                                  className="inline-flex items-center justify-start gap-x-2 rounded-md bg-sky-900 px-3 py-2 text-md font-mono text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+                                  onClick={() => {
+                                    addDesignToLocation(design.designNumber);
+                                    updateScreenDetails(design._id, "InLocation");
+                                    updateScreensStatus(design.designNumber, "InLocation");
+                                    setIsUpdating(true);
                                   }}
-                                  className="p-1 w-full text-sm text-center font-medium text-gray-100 bg-gray-800 border border-gray-300 focus:outline-indigo-500 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                                 >
-                                  {currentLocations && 
-                                  currentLocations.map((location) => (
-                                    <option key={location._id}>{location.locationName}</option>
-                                  ))}
-                                </select>
+                                  Pending
+                                  <ClockIcon
+                                    className="-ml-0.5 h-5 w-5 text-green-500"
+                                    aria-hidden="true"
+                                  />
+                                </button>
                               ) : (
-                                <p className="truncate text-md font-mono leading-6 text-white">
-                                  {design.location}
-                                </p>
-                              )}
-                            </div>
-                          </div>
-                        </td>
-                        <td className="py-2 pl-0 pr-4 text-sm leading-6 sm:pr-8 lg:pr-20">
-                          <div className="flex items-center justify-end gap-x-2 sm:justify-start">
-                            <div className="font-mono text-lg leading-6 text-white">
-                              {design.designStatus === "InLocation" && userNeedsToUpdate && design._id === updatingDesignId ? (
-                                <input
-                                  type="date"
-                                  required
-                                  className="p-1 w-full text-sm font-medium text-gray-100 bg-gray-800 border border-gray-300 focus:outline-indigo-500 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                  defaultValue={new Date().toISOString().split("T")[0]}
-                                  onChange={(event) => {
-                                    const newValue = event.target.value;
-                                    setUpdatedDesign((prevDetails) => ({
-                                      ...prevDetails,
-                                      lastPrintedDateUpdated: true,
-                                      updatedLastPrintedDate: newValue,
-                                    }));
+                                <button
+                                  type="button"
+                                  className="inline-flex items-center justify-start gap-x-2 rounded-md bg-gray-700 px-3 py-2 text-md font-mono text-white shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+                                  onClick={() => {
+                                    updateScreenDetails(design._id, "AwaitingLocation");
+                                    updateScreensStatus(design.designNumber, "AwaitingLocation");
+                                    setIsUpdating(true);
                                   }}
-                                />
-                              ) : (
-                                <p className="truncate text-md font-mono leading-6 text-white">
-                                 {design.lastPrintedDate}
-                                </p>
+                                >
+                                  Location Added
+                                  <CheckIcon
+                                    className="-ml-0.5 h-5 w-5 text-green-500"
+                                    aria-hidden="true"
+                                  />
+                                </button>
                               )}
                             </div>
-                          </div>
-                        </td>
-                        <td className="hidden py-2 pl-0 pr-8 text-lg leading-6 font-mono text-white md:table-cell lg:pr-10">
-                          <p className="truncate text-md font-mono leading-6 text-white">
-                            <DaysDifference givenDate={design.lastPrintedDate} /> {" Days"}
-                          </p>
-                        </td>
-                        <td className="hidden py-2 pl-0 pr-8 text-sm leading-6 text-white md:table-cell md:pr-12 sm:pr-20">
-                          <div className="flex items-start justify-start">
-                            {userNeedsToUpdate && design._id === updatingDesignId ? (
-                              <button
-                                type="button"
-                                className="inline-flex items-center justify-start gap-x-2 rounded-md bg-yellow-600 px-3 py-2 text-md font-mono font-bold text-white shadow-sm hover:bg-yellow-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-yellow-600"
-                                onClick={() => {
-                                  updateLocationAndPrintedDate(
-                                    design._id,
-                                    design.designStatus === "InLocation" ? "InLocation" : "AwaitingDeEndring"
-                                  );
-                                  setIsUpdating(true);
-                                  setUserNeedsToUpdate(false);
-                                }}
-                              >
-                                Modify
-                              </button>
-                            ) : (
-                              <button
-                                type="button"
-                                className="inline-flex items-center justify-start gap-x-2 rounded-md bg-green-700 px-3 hover:bg-green-600 py-2 text-md font-mono font-bold text-white shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600"
-                                onClick={() => {
-                                  setIsUpdating(true);
-                                  setUserNeedsToUpdate(true);
-                                  setUpdatingDesignId(design._id);
-                                }}
-                              >
-                                Update
-                              </button>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
+                          </td>
+                        </tr>
+                      ))}
                 </tbody>
               </table>
             </div>
@@ -637,4 +651,4 @@ function DesignsEngraving() {
   );
 }
 
-export default DesignsEngraving;
+export default AddLocations;

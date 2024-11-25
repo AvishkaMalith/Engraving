@@ -1,5 +1,5 @@
 // Importing the Design Model
-const designModel = require("../models/designModel");
+const Design = require("../models/designModel");
 
 // Importing required packages
 const mongoose = require("mongoose");
@@ -7,7 +7,7 @@ const mongoose = require("mongoose");
 // Defining a get request to to retrieve all the designs
 const getDesigns = async (req, res) => {
   try {
-    const designs = await designModel.find({});
+    const designs = await Design.find({});
     res.json(designs);
   } catch (error) {
     res.status(500).json({ message: "Error fetching Designs", error });
@@ -19,12 +19,12 @@ const getDesign = async (req, res) => {
   const designObjectId = req.params.id;
 
   try {
-    const design = await designModel.findById(designObjectId);
+    const design = await Design.findById(designObjectId);
     if (!design) {
       return res.status(404).json({ message: "Design not found" });
     }
     res.json(design);
-  } catch (error) {
+  } catch (erro) {
     res.status(500).json({ message: "Error fetching the Design", error });
   }
 };
@@ -48,11 +48,11 @@ const createDesign = async (req, res) => {
     specialInstructions,
     location,
     designStatus,
-    lastPrintedDate
+    lastPrintedDate,
   } = req.body;
 
   try {
-    const newDesign = await designModel.create({
+    const newDesign = await Design.create({
       designNumber,
       exposedStatus,
       orderType,
@@ -69,7 +69,7 @@ const createDesign = async (req, res) => {
       specialInstructions,
       location,
       designStatus,
-      lastPrintedDate
+      lastPrintedDate,
     });
 
     res.status(200).json({
@@ -105,7 +105,7 @@ const searchDesigns = async (req, res) => {
     }
 
     // Find screens that match the criteria
-    const designs = await designModel.find(searchCriteria);
+    const designs = await Design.find(searchCriteria);
 
     res.json(designs);
   } catch (error) {
@@ -118,7 +118,7 @@ const searchDesigns = async (req, res) => {
 const deleteDesign = async (req, res) => {
   const { id } = req.params;
 
-  const design = await designModel.findOneAndDelete({ _id: id });
+  const design = await Design.findOneAndDelete({ _id: id });
 
   if (!design) {
     return res.status(400).json({ error: "No such design found" });
@@ -133,7 +133,7 @@ const updateDesign = async (req, res) => {
     return res.status(404).json({ error: "No such design found" });
   }
 
-  const design = await designModel.findOneAndUpdate(
+  const design = await Design.findOneAndUpdate(
     { _id: id },
     {
       ...req.body,

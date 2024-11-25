@@ -7,9 +7,9 @@ import {
   CheckIcon
 } from "@heroicons/react/24/outline";
 
-import { MdPalette, MdRemoveCircleOutline } from "react-icons/md";
+import { MdPalette, MdRemoveCircleOutline, MdAddCircleOutline } from "react-icons/md";
+import { FaTools } from "react-icons/fa";
 import { FiTool, FiSettings } from "react-icons/fi";
-import { GoLocation } from "react-icons/go";
 import { FaUsers, FaDatabase } from "react-icons/fa";
 import { HiDocumentText } from "react-icons/hi";
 
@@ -30,7 +30,7 @@ function classNames(...classes) {
   return classes.filter(Boolean).join(" ");
 }
 
-function ScreensEndringFitting() {
+function EndringFitting() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const [isUpdating, setIsUpdating] = useState(false);
@@ -41,10 +41,11 @@ function ScreensEndringFitting() {
 
   const navigation = [
     { name: "Designs", icon: MdPalette, current: false, route: "/" },
-    { name: "Endring Fittings", icon: FiTool, current: true, route: "/ScreensEndringFitting" },
-    { name: "Screen Locations", icon: GoLocation, current: false, route: "/ScreensLocation" },
-    { name: "Screen Warehouse", icon: FaDatabase, current: false, route: "/ScreenWarehouse" },
-    { name: "Endring Removing", icon: MdRemoveCircleOutline, current: false, route: "/ScreenWarehouse" },
+    { name: "Endring Fitting", icon: FiTool, current: true, route: "/EndringFitting" },
+    { name: "Add Locations", icon: MdAddCircleOutline, current: false, route: "/AddLocations" },
+    { name: "Screen Locations", icon: FaDatabase, current: false, route: "/ScreenLocations" },
+    { name: "Remove Locations", icon: MdRemoveCircleOutline, current: false, route: "/" },
+    { name: "Endring Removing", icon: FaTools, current: false, route: "/" },
     { name: "Design Details", icon: HiDocumentText, current: false, route: "/" },
     { name: "Employees", icon: FaUsers, current: false, route: "/" },
     { name: "Settings", icon: FiSettings, current: false, route: "/" },
@@ -75,7 +76,7 @@ function ScreensEndringFitting() {
           `http://localhost:4000/api/designs/search?`,
           {
             params: {
-              designStatus: ["BeingEngraved" ,"EngravingCompleted"]
+              designStatus: ["BeingEngraved", "EngravingCompleted"]
             },
           }
         );
@@ -89,7 +90,7 @@ function ScreensEndringFitting() {
     const updateDesignStatusAfterEndringFitting = async (designObjectId) => {
       try {
         const designDetails = await axios.get(`http://localhost:4000/api/designs/${designObjectId}`);
-  
+
         if (designDetails.data.screens.filter((screen) => screen.screenStatus === "AwaitingLocation").length === designDetails.data.numberOfExposedScreens) {
           await axios.patch(`http://localhost:4000/api/designs/${designObjectId}`,
             {
@@ -420,13 +421,13 @@ function ScreensEndringFitting() {
               </h2>
               <table className="mt-6 w-full whitespace-nowrap text-left ts">
                 <colgroup>
-                  <col className="w-1/12 sm:w-2/12" />
-                  <col className="lg:w-1/8" />
-                  <col className="lg:w-1/8" />
-                  <col className="lg:w-1/8" />
-                  <col className="lg:w-1/8" />
-                  <col className="lg:w-1/8" />
-                  <col className="lg:w-1/8" />
+                  <col className="w-1/7" />
+                  <col className="w-1/7" />
+                  <col className="w-1/7" />
+                  <col className="w-1/7" />
+                  <col className="w-1/7" />
+                  <col className="w-1/7" />
+                  <col className="w-1/7" />
                 </colgroup>
                 <thead className="border-b border-white/10 text-md leading-6 text-gray-400">
                   <tr>
@@ -453,7 +454,7 @@ function ScreensEndringFitting() {
                       className="py-2 pl-0 pr-4 text-right font-mono sm:pr-8 sm:text-left lg:pr-10"
                     >
 
-                      Brand & Mesh / USE
+                      Brand & Mesh/USE
                     </th>
                     <th
                       scope="col"
@@ -492,9 +493,14 @@ function ScreensEndringFitting() {
                           </td>
                           <td className="hidden py-4 pl-0 pr-4 sm:table-cell sm:pr-8">
                             <div className="flex gap-x-3">
-                              <p className="truncate text-md font-mono leading-6 text-white">
+                              <span
+                                className={`inline-flex items-center rounded-md px-2 py-1 text-sm font-medium ring-1 ring-inset ${screen.exposedType === "New"
+                                  ? "bg-green-500/10 text-green-400 ring-green-500/20"
+                                  : "bg-blue-500/10 text-blue-400 ring-blue-500/20"
+                                  }`}
+                              >
                                 {screen.exposedType}
-                              </p>
+                              </span>
                             </div>
                           </td>
                           <td className="py-4 pl-0 pr-2 sm:table-cell md:hidden lg:table-cell sm:pr-2 lg:pl-5">
@@ -536,13 +542,13 @@ function ScreensEndringFitting() {
                                   }));
                                 }}
                                 value={updatedScreen.endringFittedByValue}
-                                className="p-1 w-full text-sm font-medium text-gray-100 bg-gray-800 border border-gray-300 focus:outline-indigo-500 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                className="p-1 text-sm font-medium text-gray-100 bg-gray-800 border border-gray-300 focus:outline-indigo-500 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                               >
                                 <option value=""></option>
-                                <option value="Person-A">Person-A</option>
-                                <option value="Person-B">Person-B</option>
-                                <option value="Person-C">Person-C</option>
-                                <option value="Person-D">Person-D</option>
+                                <option value="Person-A">Person-A-40250</option>
+                                <option value="Person-B">Person-B-40521</option>
+                                <option value="Person-C">Person-C-40522</option>
+                                <option value="Person-D">Person-D-40523</option>
                               </select>
                             ) : (
                               <p className="truncate text-md font-mono leading-6 text-white">
@@ -578,16 +584,16 @@ function ScreensEndringFitting() {
                                   screen.exposedType === "Use" ? "" :
                                     <button
                                       type="button"
-                                      className="inline-flex items-center justify-start gap-x-2 rounded-md bg-gray-700 px-3 py-2 text-md font-mono text-white shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+                                      className="inline-flex items-center justify-start gap-x-2 rounded-md bg-green-600 px-3 py-2 text-md font-mono text-white shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
                                       onClick={() => {
                                         updateEndringFittedByAndScreenStatus(designId, screen._id, "AwaitingEndringFitting");
                                         setCurrentDesignId(designId);
                                         setIsUpdating(true);
                                       }}
                                     >
-                                      Completed
+                                      Endring
                                       <CheckIcon
-                                        className="-ml-0.5 h-5 w-5 text-green-500"
+                                        className="-ml-0.5 h-5 w-5 text-yellow-400"
                                         aria-hidden="true"
                                       />
                                     </button>
@@ -606,4 +612,4 @@ function ScreensEndringFitting() {
   );
 }
 
-export default ScreensEndringFitting;
+export default EndringFitting;

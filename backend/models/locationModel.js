@@ -1,21 +1,13 @@
 // Importing packages
 const mongoose = require("mongoose");
 
-// Defining the design schema
-const locationSchema = new mongoose.Schema(
-  {
-    mainLocationName: { type: String },
-    subLocation01Name: { type: String },
-    subLocation02Name: { type: String },
-    subLocation03Name: { type: String },
-    locationCapacity: { type: Number },
-    locationName: { type: String }
-  },
-  { 
-    timestamps: true 
-  }
-);
+// Defining the locationSchema
+const locationSchema = new mongoose.Schema({
+  locationName: { type: String },
+  locationCapacity: { type: Number },
+  locatedDesigns: [ ],
+});
 
-// Creating and exposrting the design model
+// Creating the locationSchema
 const Location = mongoose.model("Location", locationSchema);
-module.exports = Location;
+module.exports = { Location };

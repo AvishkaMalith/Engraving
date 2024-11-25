@@ -3,9 +3,9 @@ import { useNavigate } from "react-router-dom";
 import { Dialog, Transition } from "@headlessui/react";
 import { XMarkIcon } from "@heroicons/react/24/outline";
 
-import { MdPalette } from "react-icons/md";
+import { MdPalette, MdRemoveCircleOutline, MdAddCircleOutline } from "react-icons/md";
+import { FaTools } from "react-icons/fa";
 import { FiTool, FiSettings } from "react-icons/fi";
-import { GoLocation } from "react-icons/go";
 import { FaUsers, FaDatabase } from "react-icons/fa";
 import { HiDocumentText } from "react-icons/hi";
 
@@ -145,9 +145,11 @@ function DesignDetailsInput() {
 
   const navigation = [
     { name: "Designs", icon: MdPalette, current: true, route: "/" },
-    { name: "Endring Fittings", icon: FiTool, current: false, route: "/ScreensEndringFitting" },
-    { name: "Screen Locations", icon: GoLocation, current: false, route: "/ScreensLocation" },
-    { name: "Screen Warehouse", icon: FaDatabase, current: false, route: "/ScreenWarehouse" },
+    { name: "Endring Fitting", icon: FiTool, current: false, route: "/EndringFitting" },
+    { name: "Add Locations", icon: MdAddCircleOutline, current: false, route: "/AddLocations" },
+    { name: "Screen Locations", icon: FaDatabase, current: false, route: "/ScreensLocation" },
+    { name: "Remove Locations", icon: MdRemoveCircleOutline, current: false, route: "/" },
+    { name: "Endring Removing", icon: FaTools, current: false, route: "/" },
     { name: "Design Details", icon: HiDocumentText, current: false, route: "/" },
     { name: "Employees", icon: FaUsers, current: false, route: "/" },
     { name: "Settings", icon: FiSettings, current: false, route: "/" },
