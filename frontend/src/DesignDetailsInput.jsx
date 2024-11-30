@@ -1,10 +1,10 @@
-import { Fragment, useState } from "react";
+import { Fragment, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Dialog, Transition } from "@headlessui/react";
 import { XMarkIcon } from "@heroicons/react/24/outline";
 
 import { MdPalette, MdRemoveCircleOutline, MdAddCircleOutline } from "react-icons/md";
-import { FaTools } from "react-icons/fa";
+import { FaBoxes, FaTools } from "react-icons/fa";
 import { FiTool, FiSettings } from "react-icons/fi";
 import { FaUsers, FaDatabase } from "react-icons/fa";
 import { HiDocumentText } from "react-icons/hi";
@@ -18,8 +18,29 @@ function classNames(...classes) {
 function DesignDetailsInput() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
+  // Using a state to get the next design number
+  const [nextScreenNumber, setNextScreenNumber] = useState();
+
+  // Using Navigate from the react-dom to navigate through application
+  const navigate = useNavigate();
+
+  // Defining navigation names, icons and their routes in the application
+  const navigation = [
+    { name: "Designs", icon: MdPalette, current: true, route: "/" },
+    { name: "Endring Fitting", icon: FiTool, current: false, route: "/EndringFitting" },
+    { name: "Add Locations", icon: MdAddCircleOutline, current: false, route: "/AddLocations" },
+    { name: "Screen Locations", icon: FaDatabase, current: false, route: "/ScreenLocations" },
+    { name: "Remove Locations", icon: MdRemoveCircleOutline, current: false, route: "/RemoveLocations" },
+    { name: "Endring Removing", icon: FaTools, current: false, route: "/EndringRemoving" },
+    { name: "Endring Removed", icon: FaBoxes, current: false, route: "/EndringRemoved" },
+    { name: "Design Details", icon: HiDocumentText, current: false, route: "/" },
+    { name: "Employees", icon: FaUsers, current: false, route: "/" },
+    { name: "Settings", icon: FiSettings, current: false, route: "/" },
+  ];
+
+  // Using a state to hold the values of user input
   const [formData, setFormData] = useState({
-    designNumber: "",
+    designNumber: nextScreenNumber,
     exposedStatus: "New",
     numberOfColors: "",
     numberOfExposedScreens: "",
@@ -37,6 +58,32 @@ function DesignDetailsInput() {
     lastPrintedDate: ""
   });
 
+  // Using useEffect to get the latest screen number
+  useEffect(() => {
+    const getPreviousDesigns = async () => {
+      try {
+        // Fetching designs data
+        const previousDesignsResults = await axios.get('http://localhost:4000/api/designs/');
+
+        // Extracting design numbers & sorting them
+        const usedScreenNumbers = previousDesignsResults.data.map((design) => design.designNumber);
+        const soretdScreenNumbers = usedScreenNumbers.sort((a, b) => a - b);
+
+        // Update state with sorted screen numbers
+        const lastScreenNumber = soretdScreenNumbers[soretdScreenNumbers.length - 1];
+        setFormData((prevDetails) => ({
+          ...prevDetails,
+          designNumber: lastScreenNumber + 1
+        }));
+      } catch (error) {
+        console.error("Error while calculating the last screen number", error);
+      }
+    };
+
+    getPreviousDesigns();
+
+  }, [formData.designNumber]);
+
   const handleChange = (event) => {
     setFormData({ ...formData, [event.target.name]: event.target.value });
   };
@@ -47,47 +94,29 @@ function DesignDetailsInput() {
 
     // Check if numberOfExposedScreens is equal or less than the numberOfColors
     if (Number(formData.numberOfColors) < Number(formData.numberOfExposedScreens)) {
-      alert("Number of screens can't be greater than number of colors !");
+      window.alert("Number of screens can't be greater than number of colors !");
       return;
     }
 
     try {
 
+      // Using a for loop to build up the screen objects
       for (let i = 1; i <= formData.numberOfExposedScreens; i++) {
 
-        let screen = {};
-
-        if (i < 10) {
-          screen = {
-            pitchNumber: formData.designNumber + "-P0" + i,
-            exposedType: "New",
-            completedDate: "",
-            engraver: "",
-            endringFittedBy: "",
-            screenWidth: formData.screenWidth,
-            screenBrandAndMesh: "",
-            screenMaterialCode: "",
-            screenReferenceNumber: "",
-            rowScreenDocumnetHeader: "",
-            exposedScreenDocumentHeader: "",
-            screenStatus: "AwaitingEngraving"
-          };
-        } else {
-          screen = {
-            pitchNumber: formData.designNumber + "-P" + i,
-            exposedType: "New",
-            completedDate: "",
-            engraver: "",
-            screenWidth: formData.screenWidth,
-            endringFittedBy: "",
-            screenBrandAndMesh: "",
-            screenMaterialCode: "",
-            screenReferenceNumber: "",
-            rowScreenDocumnetHeader: "",
-            exposedScreenDocumentHeader: "",
-            screenStatus: "AwaitingEngraving"
-          };
-        }
+        let screen = {
+          pitchNumber: i < 10 ? (`SCR0${formData.designNumber}-0${i}`) : (`SCR0${formData.designNumber}-${i}`),
+          exposedType: "New",
+          completedDate: "",
+          engraver: "",
+          screenWidth: `${formData.screenWidth} mm`,
+          endringFittedBy: "",
+          screenBrandAndMesh: "",
+          screenMaterialCode: "",
+          screenReferenceNumber: "",
+          rowScreenDocumentHeader: "",
+          exposedScreenDocumentHeader: "",
+          screenStatus: "AwaitingEngraving"
+        };
 
         formData.screens.push(screen);
       }
@@ -97,11 +126,11 @@ function DesignDetailsInput() {
         exposedStatus: formData.exposedStatus,
         numberOfColors: formData.numberOfColors,
         numberOfExposedScreens: formData.numberOfExposedScreens,
-        receivedDate: formData.receivedDate,
+        receivedDate: new Date().toLocaleString('en-US', { timeZone: 'Asia/Colombo' }),
         printRoute: formData.printRoute,
         designName: formData.designName,
         customer: formData.customer,
-        screenWidth: formData.screenWidth,
+        screenWidth: `${formData.screenWidth} mm`,
         screens: formData.screens,
         dpi: formData.dpi,
         drop: formData.drop,
@@ -113,12 +142,12 @@ function DesignDetailsInput() {
 
       // Displaying a message for a successful posting
       if (newDesign) {
-        alert("New design added successfully!");
+        window.alert(`Screen ${formData.designNumber} added successfully!`);
       }
 
       // Clearing the form after submitting data
       setFormData({
-        designNumber: "",
+        designNumber: nextScreenNumber,
         exposedStatus: "New",
         numberOfColors: "",
         numberOfExposedScreens: "",
@@ -137,23 +166,9 @@ function DesignDetailsInput() {
       });
     } catch (error) {
       console.error("Error adding design:", error);
-      alert("There was an issue adding the user. Please try again.");
+      window.alert("There was an issue adding the user. Please try again.");
     }
   };
-
-  const navigate = useNavigate();
-
-  const navigation = [
-    { name: "Designs", icon: MdPalette, current: true, route: "/" },
-    { name: "Endring Fitting", icon: FiTool, current: false, route: "/EndringFitting" },
-    { name: "Add Locations", icon: MdAddCircleOutline, current: false, route: "/AddLocations" },
-    { name: "Screen Locations", icon: FaDatabase, current: false, route: "/ScreensLocation" },
-    { name: "Remove Locations", icon: MdRemoveCircleOutline, current: false, route: "/" },
-    { name: "Endring Removing", icon: FaTools, current: false, route: "/" },
-    { name: "Design Details", icon: HiDocumentText, current: false, route: "/" },
-    { name: "Employees", icon: FaUsers, current: false, route: "/" },
-    { name: "Settings", icon: FiSettings, current: false, route: "/" },
-  ];
 
   return (
     <>
@@ -335,12 +350,12 @@ function DesignDetailsInput() {
                       htmlFor="design-number"
                       className="block text-sm font-semibold text-gray-200 mb-2"
                     >
-                      Design Number
+                      Screen Number
                     </label>
                     <input
+                      disabled
                       required
                       value={formData.designNumber}
-                      onChange={handleChange}
                       type="number"
                       name="designNumber"
                       id="design-number"
@@ -397,6 +412,7 @@ function DesignDetailsInput() {
                       Received Date
                     </label>
                     <input
+                      disabled
                       required
                       value={formData.receivedDate}
                       onChange={handleChange}
@@ -412,7 +428,7 @@ function DesignDetailsInput() {
                       htmlFor="design-name"
                       className="block text-sm font-semibold text-gray-200 mb-2"
                     >
-                      Design Name
+                      Design Number (D Code)
                     </label>
                     <input
                       required
@@ -448,7 +464,7 @@ function DesignDetailsInput() {
                       htmlFor="screen-width"
                       className="block text-sm font-semibold text-gray-200 mb-2"
                     >
-                      Screen Width
+                      Screen Width (mm)
                     </label>
                     <input
                       required
@@ -551,7 +567,7 @@ function DesignDetailsInput() {
                 <div className="mt-6 flex justify-end">
                   <button
                     type="submit"
-                    className="px-6 py-2 bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-700 transition duration-300"
+                    className="px-6 py-2 bg-indigo-600 focus-ring-2 focus:ring-indigo-500 text-white font-bold rounded-lg hover:bg-indigo-700 transition duration-300"
                   >
                     Add Design
                   </button>

@@ -7,7 +7,7 @@ import {
 } from "@heroicons/react/24/outline";
 
 import { MdPalette, MdRemoveCircleOutline, MdAddCircleOutline } from "react-icons/md";
-import { FaTools } from "react-icons/fa";
+import { FaBoxes, FaTools } from "react-icons/fa";
 import { FiTool, FiSettings } from "react-icons/fi";
 import { FaUsers, FaDatabase } from "react-icons/fa";
 import { HiDocumentText } from "react-icons/hi";
@@ -19,6 +19,8 @@ import {
 } from "@heroicons/react/20/solid";
 
 import axios from "axios";
+
+import { format } from "date-fns";
 
 const teams = [
   { id: 1, name: "Planetaria", href: "#", initial: "P", current: false },
@@ -36,23 +38,30 @@ function DesignsEngraving() {
   const [isUpdating, setIsUpdating] = useState(false);
   const [currentScreens, setCurrentScreens] = useState([]);
 
+  const [useScreensOptions, setUseScreensOptions] = useState({
+    screenNumberInput: 0,
+    optionResults: []
+  });
+
   const [updatedScreen, setUpdatedScreen] = useState({
     updatedScreenId: "",
     screenBrandAndMeshValue: "",
-    completedDateValue: new Date().toISOString().split("T")[0],
+    completedDateValue: "",
     engraverValue: "",
     screenStatusValue: "AwaitingEndringFitting",
   });
 
   const navigate = useNavigate();
 
+  // Defining navigation names, icons and their routes in the application
   const navigation = [
     { name: "Designs", icon: MdPalette, current: true, route: "/" },
     { name: "Endring Fitting", icon: FiTool, current: false, route: "/EndringFitting" },
     { name: "Add Locations", icon: MdAddCircleOutline, current: false, route: "/AddLocations" },
-    { name: "Screen Locations", icon: FaDatabase, current: false, route: "/ScreensLocation" },
-    { name: "Remove Locations", icon: MdRemoveCircleOutline, current: false, route: "/" },
-    { name: "Endring Removing", icon: FaTools, current: false, route: "/" },
+    { name: "Screen Locations", icon: FaDatabase, current: false, route: "/ScreenLocations" },
+    { name: "Remove Locations", icon: MdRemoveCircleOutline, current: false, route: "/RemoveLocations" },
+    { name: "Endring Removing", icon: FaTools, current: false, route: "/EndringRemoving" },
+    { name: "Endring Removed", icon: FaBoxes, current: false, route: "/EndringRemoved" },
     { name: "Design Details", icon: HiDocumentText, current: false, route: "/" },
     { name: "Employees", icon: FaUsers, current: false, route: "/" },
     { name: "Settings", icon: FiSettings, current: false, route: "/" },
@@ -65,7 +74,7 @@ function DesignsEngraving() {
   const stats = [
     {
       statIdx: 1,
-      name: "Design Number #",
+      name: "Screen Number #",
       value: currentDesign.designNumber,
     },
     {
@@ -81,7 +90,7 @@ function DesignsEngraving() {
     {
       statIdx: 4,
       name: "Received Date",
-      value: currentDesign.receivedDate
+      value: format(currentDesign.receivedDate, "PP")
     },
     {
       statIdx: 5,
@@ -101,7 +110,7 @@ function DesignsEngraving() {
     {
       statIdx: 8,
       name: "Screen Width",
-      value: currentDesign.screenWidth + " mm",
+      value: currentDesign.screenWidth,
     },
     {
       statIdx: 9,
@@ -184,19 +193,44 @@ function DesignsEngraving() {
     }
   };
 
+  useEffect(() => {
+    try {
+      const getUseScreensOptionsResults = async () => {
+        const useScreensOptionsResults = await axios.get(`http://localhost:4000/api/designs/search`, {
+          params: {
+            query: useScreensOptions.screenNumberInput
+          }
+        });
+
+        const screensData = useScreensOptionsResults?.data[0]?.screens;
+
+        setUseScreensOptions((prevDetails) => ({
+          ...prevDetails,
+          optionResults: screensData || []
+        }));
+
+      };
+
+      getUseScreensOptionsResults();
+    } catch (error) {
+      console.error("Error while getting screen data", error);
+    }
+
+  }, [useScreensOptions.screenNumberInput]);
+
   const updateMeshDateEngraver = async (screenId, screenStatusValue) => {
     try {
       await axios.patch(`http://localhost:4000/api/screens/${currentDesign._id}/${screenId}`, {
         // Updating screen details with their values
         screenBrandAndMesh: updatedScreen.screenBrandAndMeshValue,
-        completedDate: updatedScreen.completedDateValue,
+        completedDate: new Date().toLocaleString('en-us', { timeZone: 'Asia/Colombo' }),
         engraver: updatedScreen.engraverValue,
         screenStatus: screenStatusValue,
       });
 
       setUpdatedScreen({
         screenBrandAndMeshValue: "",
-        completedDateValue: new Date().toISOString().split("T")[0],
+        completedDateValue: "",
         engraverValue: "",
         screenStatusValue: "AwaitingEndringFitting",
       });
@@ -463,12 +497,11 @@ function DesignsEngraving() {
               </h2>
               <table className="mt-6 w-full whitespace-nowrap text-left ">
                 <colgroup>
-                  <col className="w-1/6" />
-                  <col className="w-1/6" />
-                  <col className="w-1/6" />
-                  <col className="w-1/6" />
-                  <col className="w-1/6" />
-                  <col className="w-1/6" />
+                  <col className="w-1/4" />
+                  <col className="w-1/4" />
+                  <col className="w-1/4" />
+                  <col className="w-1/4" />
+                  <col className="w-1/4" />
                 </colgroup>
                 <thead className="border-b border-white/10 text-md leading-6 text-gray-400">
                   <tr>
@@ -492,13 +525,7 @@ function DesignsEngraving() {
                     </th>
                     <th
                       scope="col"
-                      className="py-2 pl-4 pr-4 text-right font-mono sm:pr-8 sm:text-left lg:pr-20"
-                    >
-                      Completed Date
-                    </th>
-                    <th
-                      scope="col"
-                      className="hidden py-2 pl-0 pr-8 font-mono md:table-cell lg:pr-20"
+                      className="hidden py-2 pl-10 pr-8 font-mono md:table-cell lg:pr-20"
                     >
                       Engraver
                     </th>
@@ -521,7 +548,7 @@ function DesignsEngraving() {
                         </td>
                         <td className="hidden py-4 pl-0 pr-4 sm:table-cell sm:pr-8">
                           <div className="flex gap-x-3">
-                            {screen.screenStatus === "AwaitingEngraving" ? (
+                            {currentDesign.numberOfColors !== currentDesign.numberOfExposedScreens ? (
                               <div>
                                 <span
                                   className={`inline-flex items-center rounded-md px-2 py-1 text-sm font-medium ring-1 ring-inset ${screen.exposedType === "New"
@@ -573,7 +600,7 @@ function DesignsEngraving() {
                                       }));
                                     }}
                                     value={updatedScreen.screenBrandAndMeshValue}
-                                    className="p-1 text-sm font-medium text-gray-100 bg-gray-800 border border-gray-300 focus:outline-indigo-500 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    className="p-1 w-full text-sm font-medium text-gray-100 bg-gray-800 border border-gray-300 focus:outline-indigo-500 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                                   >
                                     <option value=""></option>
                                     <option value="125CHINA">125 CHINA</option>
@@ -582,19 +609,38 @@ function DesignsEngraving() {
                                     <option value="155CHINA">155 CHINA</option>
                                   </select>
                                 ) : (
-                                  <input
-                                    type="text"
-                                    value={updatedScreen.screenBrandAndMeshValue}
-                                    onChange={(event) => {
-                                      const newValue = event.target.value;
-                                      setUpdatedScreen((prevDetails) => ({
-                                        ...prevDetails,
-                                        screenBrandAndMeshValue: newValue,
-                                        updatedScreenId: screen._id
-                                      }));
-                                    }}
-                                    className="p-1 w-full text-sm font-medium text-gray-100 bg-gray-800 border border-gray-300 focus:outline-indigo-500 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                  />
+                                  <div>
+                                    <input
+                                      type="number"
+                                      onChange={(event) => {
+                                        const inputNumber = event.target.value;
+                                        setUseScreensOptions((prevDetails) => ({
+                                          ...prevDetails,
+                                          screenNumberInput: inputNumber
+                                        }));
+                                      }}
+                                      className="m-1 p-1 w-1/2 text-sm font-medium text-gray-100 bg-gray-800 border border-gray-300 focus:outline-indigo-500 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    />
+                                    <select
+                                      // onChange={(event) => {
+                                      //   const newValue = event.target.value;
+                                      //   setUpdatedScreen((prevDetails) => ({
+                                      //     ...prevDetails,
+                                      //     screenBrandAndMeshValue: newValue,
+                                      //     updatedScreenId: screen._id
+                                      //   }));
+                                      // }}
+                                      // value={updatedScreen.screenBrandAndMeshValue}
+                                      className="m-1 p-1 w-1/2 text-sm font-medium text-gray-100 bg-gray-800 border border-gray-300 focus:outline-indigo-500 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    >
+                                      {useScreensOptions.optionResults &&
+                                        useScreensOptions.optionResults.map((screen) => (
+                                          <option key={screen._id} value={screen.pitchNumber}>
+                                            {screen.pitchNumber}
+                                          </option>
+                                        ))}
+                                    </select>
+                                  </div>
                                 )
                               ) : (
                                 <p className="truncate text-md font-mono leading-6 text-white">
@@ -604,32 +650,7 @@ function DesignsEngraving() {
                             </div>
                           </div>
                         </td>
-                        <td className="py-4 pl-4 pr-4 text-sm leading-6 sm:pr-8 lg:pr-12">
-                          <div className="flex items-center justify-end gap-x-2 sm:justify-start">
-                            <div className="font-mono text-lg leading-6 text-white">
-                              {screen.screenStatus === "AwaitingEngraving" ? (
-                                <input
-                                  type="date"
-                                  required
-                                  className="p-1 w-full text-sm font-medium text-gray-100 bg-gray-800 border border-gray-300 focus:outline-indigo-500 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                  value={updatedScreen.completedDateValue}
-                                  onChange={(event) => {
-                                    const newValue = event.target.value;
-                                    setUpdatedScreen((prevDetails) => ({
-                                      ...prevDetails,
-                                      completedDateValue: newValue,
-                                    }));
-                                  }}
-                                />
-                              ) : (
-                                <p className="truncate text-md font-mono leading-6 text-white">
-                                  {screen.completedDate}
-                                </p>
-                              )}
-                            </div>
-                          </div>
-                        </td>
-                        <td className="hidden py-4 pl-0 pr-8 text-lg leading-6 font-mono text-white md:table-cell lg:pr-10">
+                        <td className="hidden py-4 pl-10 pr-8 text-lg leading-6 font-mono text-white md:table-cell lg:pr-10">
                           {screen.screenStatus === "AwaitingEngraving" ? (
                             <select
                               onChange={(event) => {
@@ -677,15 +698,9 @@ function DesignsEngraving() {
                               </button>
                             ) : (
                               <button
+                                disabled
                                 type="button"
                                 className="inline-flex items-center justify-start gap-x-2 rounded-md bg-green-700 px-3 py-2 text-md font-mono font-bold text-white shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
-                                onClick={() => {
-                                  updateMeshDateEngraver(
-                                    screen._id,
-                                    "AwaitingEngraving"
-                                  );
-                                  setIsUpdating(true);
-                                }}
                               >
                                 Exposed
                                 <CheckIcon

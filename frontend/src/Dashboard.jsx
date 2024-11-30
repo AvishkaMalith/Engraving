@@ -13,12 +13,14 @@ import {
 } from "@heroicons/react/20/solid";
 
 import { MdPalette, MdRemoveCircleOutline, MdAddCircleOutline } from "react-icons/md";
-import { FaTools } from "react-icons/fa";
+import { FaBoxes, FaTools } from "react-icons/fa";
 import { FiTool, FiSettings } from "react-icons/fi";
 import { FaUsers, FaDatabase } from "react-icons/fa";
 import { HiDocumentText } from "react-icons/hi";
 
 import axios from "axios";
+
+import { format } from "date-fns";
 
 function classNames(...classes) {
   return classes.filter(Boolean).join(" ");
@@ -38,8 +40,9 @@ function Dashboard() {
     { name: "Endring Fitting", icon: FiTool, current: false, route: "/EndringFitting" },
     { name: "Add Locations", icon: MdAddCircleOutline, current: false, route: "/AddLocations" },
     { name: "Screen Locations", icon: FaDatabase, current: false, route: "/ScreenLocations" },
-    { name: "Remove Locations", icon: MdRemoveCircleOutline, current: false, route: "/" },
-    { name: "Endring Removing", icon: FaTools, current: false, route: "/" },
+    { name: "Remove Locations", icon: MdRemoveCircleOutline, current: false, route: "/RemoveLocations" },
+    { name: "Endring Removing", icon: FaTools, current: false, route: "/EndringRemoving" },
+    { name: "Endring Removed", icon: FaBoxes, current: false, route: "/EndringRemoved" },
     { name: "Design Details", icon: HiDocumentText, current: false, route: "/" },
     { name: "Employees", icon: FaUsers, current: false, route: "/" },
     { name: "Settings", icon: FiSettings, current: false, route: "/" },
@@ -411,7 +414,7 @@ function Dashboard() {
                       scope="col"
                       className="py-2 pl-4 pr-8 font-mono sm:pl-6 lg:pl-8"
                     >
-                      Design Number
+                      Screen #
                     </th>
                     <th
                       scope="col"
@@ -505,7 +508,7 @@ function Dashboard() {
                             <div className="h-1.5 w-1.5 rounded-full bg-current" />
                           </div> */}
                             <div className="font-mono text-lg leading-6 text-white">
-                              {design.receivedDate}
+                              {format(design.receivedDate, "PP")}
                             </div>
                           </div>
                         </td>

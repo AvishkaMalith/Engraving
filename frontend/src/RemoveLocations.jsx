@@ -1,14 +1,13 @@
 import { Fragment, useEffect, useState } from "react";
-import { RouterProvider, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { Dialog, Transition } from "@headlessui/react";
 import {
   XMarkIcon,
-  PlusIcon,
   CheckIcon,
 } from "@heroicons/react/24/outline";
 
 import { MdPalette, MdRemoveCircleOutline, MdAddCircleOutline } from "react-icons/md";
-import { FaBoxes, FaTools } from "react-icons/fa";
+import { FaBoxes, FaTools, FaTrash } from "react-icons/fa";
 import { FiTool, FiSettings } from "react-icons/fi";
 import { FaUsers, FaDatabase } from "react-icons/fa";
 import { HiDocumentText } from "react-icons/hi";
@@ -18,9 +17,11 @@ import {
   MagnifyingGlassIcon,
   ClockIcon,
 } from "@heroicons/react/20/solid";
+
 import axios from "axios";
 
-import SuggestLocation from "./SuggestLocation";
+import DaysDifference from "./DaysDifference";
+import { format } from "date-fns";
 
 const teams = [
   { id: 1, name: "Planetaria", href: "#", initial: "P", current: false },
@@ -32,27 +33,30 @@ function classNames(...classes) {
   return classes.filter(Boolean).join(" ");
 }
 
-function AddLocations() {
+function RemoveLocations() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const [isUpdating, setIsUpdating] = useState(false);
   const [currentDesigns, setCurrentDesigns] = useState([]);
   const [currentLocations, setCurrentLocations] = useState([]);
+  const [userInputDays, setUserInputDays] = useState(100);
+  const [removableDesigns, setRemovableDesigns] = useState([]);
 
-  const [updatedDesign, setUpdatedDesign] = useState({
+  const [update, setUpdate] = useState({
     designLocationValue: "",
     designLocationId: "",
-    designStatusValue: "AwaitingLocation"
+    designStatusValue: "AwaitingEndringRemoving"
   });
 
   const navigate = useNavigate();
 
+  // Defining navigation names, icons and their routes in the application
   const navigation = [
     { name: "Designs", icon: MdPalette, current: false, route: "/" },
     { name: "Endring Fitting", icon: FiTool, current: false, route: "/EndringFitting" },
-    { name: "Add Locations", icon: MdAddCircleOutline, current: true, route: "/AddLocations" },
+    { name: "Add Locations", icon: MdAddCircleOutline, current: false, route: "/AddLocations" },
     { name: "Screen Locations", icon: FaDatabase, current: false, route: "/ScreenLocations" },
-    { name: "Remove Locations", icon: MdRemoveCircleOutline, current: false, route: "/RemoveLocations" },
+    { name: "Remove Locations", icon: MdRemoveCircleOutline, current: true, route: "/RemoveLocations" },
     { name: "Endring Removing", icon: FaTools, current: false, route: "/EndringRemoving" },
     { name: "Endring Removed", icon: FaBoxes, current: false, route: "/EndringRemoved" },
     { name: "Design Details", icon: HiDocumentText, current: false, route: "/" },
@@ -63,13 +67,17 @@ function AddLocations() {
   const stats = [
     {
       statIdx: 1,
-      name: "Awaiting Location Designs #",
-      value: currentDesigns.length,
+      name: "Removable Designs #",
+      value: removableDesigns
+        .filter((design => design.designStatus === "InLocation"))
+        .length,
     },
     {
       statIdx: 2,
-      name: "Awaiting Location Screens #",
-      value: currentDesigns.reduce((sum, design) => sum + design.numberOfExposedScreens, 0)
+      name: "Removable Screens #",
+      value: removableDesigns.
+        filter((design => design.designStatus === "InLocation"))
+        .reduce((sum, design) => sum + design.numberOfExposedScreens, 0)
     }
   ];
 
@@ -81,12 +89,13 @@ function AddLocations() {
           `http://localhost:4000/api/designs/search`,
           {
             params: {
-              designStatus: ["AwaitingLocation", "AwaitingDeEndring"]
+              designStatus: ["InLocation", "AwaitingEndringRemoving"]
             },
           }
         );
 
         setCurrentDesigns(designDetails.data);
+
       } catch (error) {
         console.error("Error fetching screen details:", error);
       }
@@ -109,79 +118,36 @@ function AddLocations() {
 
   }, [isUpdating]);
 
-  const updateScreenDetails = async (designId, designStatusValue) => {
+  useEffect(() => {
+    setRemovableDesigns(currentDesigns
+      .filter((design) => {
+        const timeDifferenceInMilliseconds = new Date() - new Date(design.lastPrintedDate);
+        const daysCount = timeDifferenceInMilliseconds / (1000 * 60 * 60 * 24);
+        return Math.floor(daysCount) >= userInputDays;
+      }));
+  }, [currentDesigns, userInputDays, isUpdating]);
+
+  const removeDesignFromLocation = async (designId, designNumber, designLocation) => {
     try {
-      
-      const lastPrintedDateValue = designStatusValue === "InLocation" ? new Date().toLocaleString("en-us" , { timeZone: "Asia/Colombo"}) : "";
-      
-      await axios.patch(`http://localhost:4000/api/designs/${designId}`, {
-        // Updating screen details with their values
-        location: updatedDesign.designLocationValue,
-        designStatus: designStatusValue,
-        lastPrintedDate : lastPrintedDateValue
-      });
+      if (window.confirm(`Remove ${designNumber} ?`)) {
+        // Getting the locationObjectId for the given designLocation
+        const locationId = currentLocations
+          .filter((location) => location.locationName == designLocation).map((location) => location._id)[0];
 
-      setUpdatedDesign({
-        designLocationValue: "",
-        designStatusValue: "AwaitingEndringFitting",
-      });
+        // Removing the design from the location
+        const removeDesign = await axios.patch(`http://localhost:4000/api/locations/removeFromLocation/${locationId}/${designNumber}`);
 
-      setIsUpdating(false);
-    } catch (error) {
-      console.error("Error updating screen details:", error);
-    }
-  };
+        // Updating the design
+        const updateDesign = await axios.patch(`http://localhost:4000/api/designs/${designId}`, {
+          designStatus: "AwaitingEndringRemoving"
+        });
 
-  const addDesignToLocation = async (designNumber) => {
-    try {
-      const addDesign = await axios.patch(`http://localhost:4000/api/locations/addToLocation/${updatedDesign.designLocationId}/${designNumber}`);
-
-      if (addDesign) {
-        setUpdatedDesign((prevDetails) => ({
-          ...prevDetails,
-          designLocationId: ""
-        }))
+        setIsUpdating(true);
       }
     } catch (error) {
-      console.error("Error adding design to the location", error);
-    }
-  }
-
-  const updateScreensStatus = async (currentDesignNumber, screenStatusValue) => {
-    try {
-      let filterStatus =
-        screenStatusValue === "InLocation" ? "AwaitingLocation" : "InLocation";
-
-      // Fetch screens based on the current filterStatus
-      const { data: screens } = await axios.get(
-        `http://localhost:4000/api/screens/search`,
-        {
-          params: {
-            query: currentDesignNumber,
-            screenStatus: filterStatus,
-          },
-        }
-      );
-
-      // Perform patch operations on the fetched screens
-      const screenPromises = screens.map((screen) =>
-        axios.patch(`http://localhost:4000/api/screens/${screen._id}`, {
-          screenStatus: screenStatusValue,
-        })
-      );
-
-      // Run all requests in parallel
-      await Promise.all(screenPromises);
-
-      setIsUpdating(false);
-      setIsUpdating(true);
-
-      console.log("Screens updated successfully!");
-    } catch (error) {
-      console.error("Error updating screen details:", error);
+      console.error("Error while removing the location", error);
     }
   };
-
 
   return (
     <>
@@ -425,8 +391,11 @@ function AddLocations() {
                   <input
                     id="search-field"
                     className="block h-full w-full bg-gray-800 bg-transparent border-0 border-bg-gray-800 py-0 pl-8 pr-0 text-white focus:ring-0 focus:outline-none sm:text-md"
-                    placeholder="Search..."
-                    type="search"
+                    placeholder="Enter Number Of Days...."
+                    type="number"
+                    onChange={(event) => setUserInputDays(Number(event.target.value))}
+                    defaultValue={userInputDays}
+                    min={0} max={1000}
                     name="search"
                   />
                 </div>
@@ -485,7 +454,7 @@ function AddLocations() {
             {/* Activity list */}
             <div className="border-y border-white/10 bg-gray-900 pt-6 min-h-screen">
               <h2 className="px-4 text-md font-mono leading-7 text-green-400 sm:px-6 lg:px-8">
-                Designs Awaiting Locations
+                Designs Details
               </h2>
               <table className="mt-6 w-full whitespace-nowrap text-left">
                 <colgroup>
@@ -494,7 +463,7 @@ function AddLocations() {
                   <col className="w-1/6" />
                   <col className="w-1/6" />
                   <col className="w-1/6" />
-                  <col className="w-1/6" />
+                  <col className="w-1/12" />
                 </colgroup>
                 <thead className="border-b border-white/10 text-md leading-6 text-gray-400">
                   <tr>
@@ -508,25 +477,25 @@ function AddLocations() {
                       scope="col"
                       className="hidden py-2 pl-0 pr-8 font-mono sm:table-cell"
                     >
-                      Colors #
+                      Screens #
                     </th>
                     <th
                       scope="col"
                       className="md:hidden py-2 pl-0 pr-8 font-mono sm:table-cell lg:table-cell"
                     >
-                      Screens #
+                      Location
                     </th>
                     <th
                       scope="col"
-                      className="hidden py-2 pl-0 pr-8 font-mono md:table-cell lg:pr-20"
+                      className="hidden py-2 pl-10 pr-8 font-mono md:table-cell lg:pr-20"
                     >
-                      Suggested Location
+                      Last Printed Date
                     </th>
                     <th
                       scope="col"
-                      className="hidden py-2 pl-0 pr-8 font-mono md:table-cell lg:pr-20"
+                      className="hidden py-2 pl-10 pr-8 font-mono md:table-cell lg:pr-20"
                     >
-                      Actual Location
+                      Days
                     </th>
                     <th
                       scope="col"
@@ -535,105 +504,86 @@ function AddLocations() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5">
-                  {currentDesigns &&
-                    currentDesigns
+                  {removableDesigns &&
+                    removableDesigns
                       .map((design) => (
                         <tr key={design._id}>
-                          <td className="py-4 pl-4 pr-8 sm:pl-6 lg:pl-8">
+                          <td className="py-2 pl-4 pr-8 sm:pl-6 lg:pl-8">
                             <div className="flex items-center gap-x-4">
-                              <div className="truncate text-md font-mono leading-6 text-white">
-                                {design.designNumber}
+                              <div className={`truncate text-md font-mono leading-6 
+                              ${design.designStatus === "InLocation" ?
+                                  `text-green-500` : `text-red-500`}`}>
+                                {design.designNumber + " / " + design.numberOfColors}
                               </div>
                             </div>
                           </td>
-                          <td className="hidden py-4 pl-0 pr-4 sm:table-cell sm:pr-8">
+                          <td className="hidden py-2 pl-0 pr-4 sm:table-cell sm:pr-8">
                             <div className="flex gap-x-3">
-                              <p className="truncate text-md font-mono leading-6 text-white">
-                                {design.numberOfColors}
+                              <p className={`truncate text-md font-mono leading-6 
+                              ${design.designStatus === "InLocation" ?
+                                  `text-green-500` : `text-red-500`}`}>
+                                {design.numberOfExposedScreens}
                               </p>
                             </div>
                           </td>
-                          <td className="py-4 pl-0 pr-2 sm:table-cell md:hidden lg:table-cell sm:pr-2">
+                          <td className="py-2 pl-0 pr-2 sm:table-cell md:hidden lg:table-cell sm:pr-2">
                             <div className="flex gap-x-3">
                               <div className="font-mono text-lg leading-6 text-white">
-                                <p className="truncate text-md font-mono leading-6 text-white">
-                                  {design.numberOfExposedScreens}
+                                <p className={`truncate text-md font-mono leading-6 
+                              ${design.designStatus === "InLocation" ?
+                                    `text-green-500` : `text-red-500`}`}>
+                                  {design.location}
                                 </p>
                               </div>
                             </div>
                           </td>
-                          <td className="py-4 pl-0 pr-4 text-sm leading-6 sm:pr-8 lg:pr-20">
+                          <td className="py-2 pl-10 pr-4 text-sm leading-6 sm:pr-8 lg:pr-20">
                             <div className="flex items-center justify-end gap-x-2 sm:justify-start">
                               <div className="font-mono text-lg leading-6 text-white">
-                                <p className="truncate text-md font-mono leading-6 text-white">
-                                  <SuggestLocation givenNumberOfScreens={design.numberOfExposedScreens} />
+                                <p className={`truncate text-md font-mono leading-6 
+                              ${design.designStatus === "InLocation" ?
+                                    `text-green-500` : `text-red-500`}`}>
+                                  {format(design.lastPrintedDate, "PP")}
                                 </p>
                               </div>
                             </div>
                           </td>
-                          <td className="hidden py-4 pl-0 pr-8 text-lg leading-6 font-mono text-white md:table-cell lg:pr-18">
-                            {design.designStatus === "AwaitingLocation" ? (
-                              <select
-                                onChange={(event) => {
-                                  const locationId = event.target.value;
-                                  const location = currentLocations
-                                    .find((location) => location._id == locationId)
-                                    .locationName;
-                                  setUpdatedDesign((prevDetails) => ({
-                                    ...prevDetails,
-                                    designLocationId: locationId,
-                                    designLocationValue: location
-                                  }));
-                                }}
-                                className="p-1 w-3/4 text-sm text-center font-medium text-gray-100 bg-gray-800 border border-gray-300 focus:outline-indigo-500 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                              >
-                                <option value={""}></option>
-                                {currentLocations &&
-                                  currentLocations.map((location) => (
-                                    <option key={location._id} value={location._id}>
-                                      {location.locationName}
-                                    </option>
-                                  ))}
-                              </select>
-                            ) : (
-                              <p className="truncate text-md font-mono leading-6 text-white">
-                                {design.location}
-                              </p>
-                            )}
+                          <td className="py-2 pl-10 pr-4 text-sm leading-6 sm:pr-8 lg:pr-20">
+                            <div className="flex items-center justify-end gap-x-2 sm:justify-start">
+                              <div className="font-mono text-lg leading-6 text-white">
+                                <p className={`truncate text-md font-mono leading-6 
+                              ${design.designStatus === "InLocation" ?
+                                    `text-green-500` : `text-red-500`}`}>
+                                  <DaysDifference givenDate={design.lastPrintedDate} />
+                                </p>
+                              </div>
+                            </div>
                           </td>
-                          <td className="hidden py-4 pl-0 pr-8 text-sm leading-6 text-white md:table-cell md:pr-12 sm:pr-20">
+                          <td className="hidden py-2 pl-0 pr-8 text-sm leading-6 text-white md:table-cell md:pr-12 sm:pr-20">
                             <div className="flex items-start justify-start">
-                              {design.designStatus ===
-                                "AwaitingLocation" ? (
+                              {design.designStatus === "InLocation" ? (
                                 <button
                                   type="button"
-                                  className="inline-flex items-center justify-start gap-x-2 rounded-md bg-sky-900 px-3 py-2 text-md font-mono text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+                                  className="inline-flex items-center justify-start gap-x-2 rounded-md bg-green-700 px-3 py-2 text-md font-mono text-white shadow-sm hover:bg-green-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
                                   onClick={() => {
-                                    addDesignToLocation(design.designNumber);
-                                    updateScreenDetails(design._id, "InLocation");
-                                    updateScreensStatus(design.designNumber, "InLocation");
-                                    setIsUpdating(true);
+                                    removeDesignFromLocation(design._id, design.designNumber, design.location);
                                   }}
                                 >
-                                  Pending
-                                  <ClockIcon
-                                    className="-ml-0.5 h-5 w-5 text-green-500"
+                                  Remove
+                                  <FaTrash
+                                    className="-ml-0.5 h-5 w-5 text-red-900"
                                     aria-hidden="true"
                                   />
                                 </button>
                               ) : (
                                 <button
+                                  disabled
                                   type="button"
-                                  className="inline-flex items-center justify-start gap-x-2 rounded-md bg-gray-700 px-3 py-2 text-md font-mono text-white shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
-                                  onClick={() => {
-                                    updateScreenDetails(design._id, "AwaitingLocation");
-                                    updateScreensStatus(design.designNumber, "AwaitingLocation");
-                                    setIsUpdating(true);
-                                  }}
+                                  className="inline-flex items-center justify-start gap-x-2 rounded-md bg-red-900 px-3 py-2 text-md font-mono text-white shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
                                 >
-                                  Location Added
+                                  Remove
                                   <CheckIcon
-                                    className="-ml-0.5 h-5 w-5 text-green-500"
+                                    className="-ml-0.5 h-5 w-5 text-red-300"
                                     aria-hidden="true"
                                   />
                                 </button>
@@ -652,4 +602,4 @@ function AddLocations() {
   );
 }
 
-export default AddLocations;
+export default RemoveLocations;

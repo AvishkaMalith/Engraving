@@ -7,7 +7,7 @@ const screenSchema = new mongoose.Schema({
   exposedType: { type: String },
   completedDate: { type: String },
   engraver: { type: String },
-  screenWidth: { type: Number },
+  screenWidth: { type: String },
   endringFittedBy: { type: String },
   screenBrandAndMesh: { type: String },
   screenMaterialCode: { type: String },

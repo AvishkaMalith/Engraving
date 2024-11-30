@@ -1,0 +1,15 @@
+mm in design form / Done
+SCR format = SCR020595-01 remove "P" / Done
+Use screen Dropdown / Done
+after engraving the screen cannot edit data / Done
+need to get the next screen number with the last completed number / Done
+need to make reservation for screen number and later fill the data / Done
+designs dashboards search / Not Completed
+latest screen number to the top / Not Completed
+network issue refreshing / Not Completed
+remove option for ediiitn data / Done
+add filter open capacity given numberofclrs availble slots / Not Completed
+
+
+
+ru7wantha aiya's ios app to read data search 

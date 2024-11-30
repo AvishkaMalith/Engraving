@@ -8,7 +8,7 @@ import {
 } from "@heroicons/react/24/outline";
 
 import { MdPalette, MdRemoveCircleOutline, MdAddCircleOutline } from "react-icons/md";
-import { FaBoxes, FaTools } from "react-icons/fa";
+import { FaTools, FaBoxes } from "react-icons/fa";
 import { FiTool, FiSettings } from "react-icons/fi";
 import { FaUsers, FaDatabase } from "react-icons/fa";
 import { HiDocumentText } from "react-icons/hi";
@@ -20,7 +20,7 @@ import {
 } from "@heroicons/react/20/solid";
 import axios from "axios";
 
-import SuggestLocation from "./SuggestLocation";
+import { format } from "date-fns";
 
 const teams = [
   { id: 1, name: "Planetaria", href: "#", initial: "P", current: false },
@@ -32,44 +32,58 @@ function classNames(...classes) {
   return classes.filter(Boolean).join(" ");
 }
 
-function AddLocations() {
+function EndringRemoving() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const [isUpdating, setIsUpdating] = useState(false);
   const [currentDesigns, setCurrentDesigns] = useState([]);
   const [currentLocations, setCurrentLocations] = useState([]);
-
-  const [updatedDesign, setUpdatedDesign] = useState({
-    designLocationValue: "",
-    designLocationId: "",
-    designStatusValue: "AwaitingLocation"
-  });
+  const [updatedLocation, setUpdatedLocation] = useState("");
 
   const navigate = useNavigate();
 
   const navigation = [
     { name: "Designs", icon: MdPalette, current: false, route: "/" },
     { name: "Endring Fitting", icon: FiTool, current: false, route: "/EndringFitting" },
-    { name: "Add Locations", icon: MdAddCircleOutline, current: true, route: "/AddLocations" },
+    { name: "Add Locations", icon: MdAddCircleOutline, current: false, route: "/AddLocations" },
     { name: "Screen Locations", icon: FaDatabase, current: false, route: "/ScreenLocations" },
     { name: "Remove Locations", icon: MdRemoveCircleOutline, current: false, route: "/RemoveLocations" },
-    { name: "Endring Removing", icon: FaTools, current: false, route: "/EndringRemoving" },
+    { name: "Endring Removing", icon: FaTools, current: true, route: "/EndringRemoving" },
     { name: "Endring Removed", icon: FaBoxes, current: false, route: "/EndringRemoved" },
     { name: "Design Details", icon: HiDocumentText, current: false, route: "/" },
     { name: "Employees", icon: FaUsers, current: false, route: "/" },
     { name: "Settings", icon: FiSettings, current: false, route: "/" },
   ];
 
-  const stats = [
+  const stats1 = [
     {
       statIdx: 1,
-      name: "Awaiting Location Designs #",
-      value: currentDesigns.length,
+      name: "Awaiting Endring Remove Designs #",
+      value: currentDesigns
+        .filter((design) => design.designStatus === "AwaitingEndringRemoving").length,
     },
     {
       statIdx: 2,
-      name: "Awaiting Location Screens #",
-      value: currentDesigns.reduce((sum, design) => sum + design.numberOfExposedScreens, 0)
+      name: "Awaiting Endring Remove Screens #",
+      value: currentDesigns
+        .filter((design) => design.designStatus === "AwaitingEndringRemoving")
+        .reduce((sum, design) => sum + design.numberOfExposedScreens, 0)
+    }
+  ];
+
+  const stats2 = [
+    {
+      statIdx: 1,
+      name: "Removed Designs #",
+      value: currentDesigns
+        .filter((design) => design.designStatus === "EndringRemoved").length,
+    },
+    {
+      statIdx: 2,
+      name: "Removed Screens #",
+      value: currentDesigns
+        .filter((design) => design.designStatus === "EndringRemoved")
+        .reduce((sum, design) => sum + design.numberOfExposedScreens, 0)
     }
   ];
 
@@ -81,7 +95,7 @@ function AddLocations() {
           `http://localhost:4000/api/designs/search`,
           {
             params: {
-              designStatus: ["AwaitingLocation", "AwaitingDeEndring"]
+              designStatus: ["AwaitingEndringRemoving", "EndringRemoved"]
             },
           }
         );
@@ -109,79 +123,63 @@ function AddLocations() {
 
   }, [isUpdating]);
 
-  const updateScreenDetails = async (designId, designStatusValue) => {
+  const addDesignToLocation = async (ScreenNumber, screenObjectId) => {
     try {
-      
-      const lastPrintedDateValue = designStatusValue === "InLocation" ? new Date().toLocaleString("en-us" , { timeZone: "Asia/Colombo"}) : "";
-      
-      await axios.patch(`http://localhost:4000/api/designs/${designId}`, {
-        // Updating screen details with their values
-        location: updatedDesign.designLocationValue,
-        designStatus: designStatusValue,
-        lastPrintedDate : lastPrintedDateValue
-      });
-
-      setUpdatedDesign({
-        designLocationValue: "",
-        designStatusValue: "AwaitingEndringFitting",
-      });
-
-      setIsUpdating(false);
-    } catch (error) {
-      console.error("Error updating screen details:", error);
-    }
-  };
-
-  const addDesignToLocation = async (designNumber) => {
-    try {
-      const addDesign = await axios.patch(`http://localhost:4000/api/locations/addToLocation/${updatedDesign.designLocationId}/${designNumber}`);
-
-      if (addDesign) {
-        setUpdatedDesign((prevDetails) => ({
-          ...prevDetails,
-          designLocationId: ""
-        }))
+      if (window.confirm(`Add ${ScreenNumber} to location ?`)) {
+        const addDesignToLocation = await axios.patch(`http://localhost:4000/api/designs/${screenObjectId}`, {
+          designStatus: "AwaitingLocation"
+        });
       }
+
+      setIsUpdating(true);
     } catch (error) {
       console.error("Error adding design to the location", error);
     }
-  }
+  };
 
-  const updateScreensStatus = async (currentDesignNumber, screenStatusValue) => {
+  const addDesignToEndringFitting = async (screenNumber, screenObjectId) => {
     try {
-      let filterStatus =
-        screenStatusValue === "InLocation" ? "AwaitingLocation" : "InLocation";
+      if (window.confirm(`Send ${screenNumber} to endring fitting ?`)) {
+        const screensOfCurrentDesign = await axios.get(`http://localhost:4000/api/screens/${screenObjectId}/search`);
 
-      // Fetch screens based on the current filterStatus
-      const { data: screens } = await axios.get(
-        `http://localhost:4000/api/screens/search`,
-        {
-          params: {
-            query: currentDesignNumber,
-            screenStatus: filterStatus,
-          },
-        }
-      );
+        // Perform patch operations on the fetched screens 
+        const screenPromises = screensOfCurrentDesign.data.map((screen) => 
+          axios.patch(`http://localhost:4000/api/screens/${screenObjectId}/${screen._id}`, {
+            screenStatus : "AwaitingEndringFitting",
+            endringFittedBy: ""
+          })
+        );
 
-      // Perform patch operations on the fetched screens
-      const screenPromises = screens.map((screen) =>
-        axios.patch(`http://localhost:4000/api/screens/${screen._id}`, {
-          screenStatus: screenStatusValue,
-        })
-      );
+        // Run all requests in parallel
+        await Promise.all(screenPromises);
 
-      // Run all requests in parallel
-      await Promise.all(screenPromises);
+        // Update the designStatus to "AwaitingEndringFitting"
+        const updateDesignStatus = await axios.patch(`http://localhost:4000/api/designs/${screenObjectId}`, {
+          designStatus: "AwaitingEndringFitting"
+        });
+      }
 
-      setIsUpdating(false);
+      setUpdatedLocation("");
       setIsUpdating(true);
-
-      console.log("Screens updated successfully!");
     } catch (error) {
-      console.error("Error updating screen details:", error);
+      console.error("Error adding design to the location", error);
     }
   };
 
+  const updateEndringRemovedLocation = async (screenNumber, screenObjectId) => {
+    try {
+      if (window.confirm(`Add ${screenNumber} to ${updatedLocation} ?`)) {
+        const addDesignToLocation = await axios.patch(`http://localhost:4000/api/designs/${screenObjectId}`, {
+          designStatus: "EndringRemoved",
+          location: updatedLocation
+        });
+      }
+      setUpdatedLocation("");
+      setIsUpdating(true);
+    } catch (error) {
+      console.error("Error adding design to the location", error);
+    }
+  };
 
   return (
     <>
@@ -452,7 +450,7 @@ function AddLocations() {
             <header>
               {/* Stats */}
               <div className="grid grid-cols-1 bg-gray-900 sm:grid-cols-2 lg:grid-cols-2">
-                {stats.map((stat, statIdx) => (
+                {stats1.map((stat, statIdx) => (
                   <div
                     key={stat.name}
                     className={classNames(
@@ -485,7 +483,7 @@ function AddLocations() {
             {/* Activity list */}
             <div className="border-y border-white/10 bg-gray-900 pt-6 min-h-screen">
               <h2 className="px-4 text-md font-mono leading-7 text-green-400 sm:px-6 lg:px-8">
-                Designs Awaiting Locations
+                Awaiting Endring Removing
               </h2>
               <table className="mt-6 w-full whitespace-nowrap text-left">
                 <colgroup>
@@ -502,31 +500,31 @@ function AddLocations() {
                       scope="col"
                       className="py-2 pl-4 pr-8 font-mono sm:pl-6 lg:pl-8"
                     >
-                      Design Number
+                      Design #
                     </th>
                     <th
                       scope="col"
                       className="hidden py-2 pl-0 pr-8 font-mono sm:table-cell"
                     >
-                      Colors #
+                      Screens #
                     </th>
                     <th
                       scope="col"
                       className="md:hidden py-2 pl-0 pr-8 font-mono sm:table-cell lg:table-cell"
                     >
-                      Screens #
+                      Location Removed
+                    </th>
+                    <th
+                      scope="col"
+                      className="hidden py-2 pl-2 pr-8 font-mono md:table-cell lg:pr-20"
+                    >
+                      New Location
                     </th>
                     <th
                       scope="col"
                       className="hidden py-2 pl-0 pr-8 font-mono md:table-cell lg:pr-20"
                     >
-                      Suggested Location
-                    </th>
-                    <th
-                      scope="col"
-                      className="hidden py-2 pl-0 pr-8 font-mono md:table-cell lg:pr-20"
-                    >
-                      Actual Location
+                      Location
                     </th>
                     <th
                       scope="col"
@@ -537,107 +535,67 @@ function AddLocations() {
                 <tbody className="divide-y divide-white/5">
                   {currentDesigns &&
                     currentDesigns
+                      .filter((design) => design.designStatus === "AwaitingEndringRemoving")
                       .map((design) => (
                         <tr key={design._id}>
-                          <td className="py-4 pl-4 pr-8 sm:pl-6 lg:pl-8">
+                          <td className="py-2 pl-0 pr-8 sm:pl-6 lg:pl-8">
                             <div className="flex items-center gap-x-4">
                               <div className="truncate text-md font-mono leading-6 text-white">
-                                {design.designNumber}
+                                {design.designNumber + " / " + design.numberOfColors}
                               </div>
                             </div>
                           </td>
-                          <td className="hidden py-4 pl-0 pr-4 sm:table-cell sm:pr-8">
+                          <td className="hidden py-2 pl-0 pr-4 sm:table-cell sm:pr-8">
                             <div className="flex gap-x-3">
                               <p className="truncate text-md font-mono leading-6 text-white">
-                                {design.numberOfColors}
+                                {design.numberOfExposedScreens}
                               </p>
                             </div>
                           </td>
-                          <td className="py-4 pl-0 pr-2 sm:table-cell md:hidden lg:table-cell sm:pr-2">
+                          <td className="py-2 pl-0 pr-2 sm:table-cell md:hidden lg:table-cell sm:pr-2">
                             <div className="flex gap-x-3">
                               <div className="font-mono text-lg leading-6 text-white">
                                 <p className="truncate text-md font-mono leading-6 text-white">
-                                  {design.numberOfExposedScreens}
+                                  {format(design.lastPrintedDate, "PP")}
                                 </p>
                               </div>
                             </div>
                           </td>
-                          <td className="py-4 pl-0 pr-4 text-sm leading-6 sm:pr-8 lg:pr-20">
-                            <div className="flex items-center justify-end gap-x-2 sm:justify-start">
-                              <div className="font-mono text-lg leading-6 text-white">
-                                <p className="truncate text-md font-mono leading-6 text-white">
-                                  <SuggestLocation givenNumberOfScreens={design.numberOfExposedScreens} />
-                                </p>
-                              </div>
-                            </div>
-                          </td>
-                          <td className="hidden py-4 pl-0 pr-8 text-lg leading-6 font-mono text-white md:table-cell lg:pr-18">
-                            {design.designStatus === "AwaitingLocation" ? (
-                              <select
-                                onChange={(event) => {
-                                  const locationId = event.target.value;
-                                  const location = currentLocations
-                                    .find((location) => location._id == locationId)
-                                    .locationName;
-                                  setUpdatedDesign((prevDetails) => ({
-                                    ...prevDetails,
-                                    designLocationId: locationId,
-                                    designLocationValue: location
-                                  }));
+                          <td className="py-2 pl-2 pr-4 text-sm leading-6 sm:pr-8 lg:pr-20">
+                            <div>
+                              <button
+                                onClick={() => {
+                                  addDesignToLocation(design.designNumber, design._id);
                                 }}
-                                className="p-1 w-3/4 text-sm text-center font-medium text-gray-100 bg-gray-800 border border-gray-300 focus:outline-indigo-500 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                className="inline-flex items-center focus:outline-none rounded hover:bg-green-950 px-2 py-1 text-sm font-medium ring-1 ring-inset bg-green-500/10 text-green-400 ring-green-500/20"
                               >
-                                <option value={""}></option>
-                                {currentLocations &&
-                                  currentLocations.map((location) => (
-                                    <option key={location._id} value={location._id}>
-                                      {location.locationName}
-                                    </option>
-                                  ))}
-                              </select>
-                            ) : (
-                              <p className="truncate text-md font-mono leading-6 text-white">
-                                {design.location}
-                              </p>
-                            )}
+                                New Location
+                              </button>
+                            </div>
                           </td>
-                          <td className="hidden py-4 pl-0 pr-8 text-sm leading-6 text-white md:table-cell md:pr-12 sm:pr-20">
+                          <td className="hidden py-2 pl-0 pr-8 text-lg leading-6 font-mono text-white md:table-cell lg:pr-18">
+                            <input
+                              onChange={(event) => {
+                                const boxLocation = event.target.value;
+                                setUpdatedLocation(boxLocation);
+                              }}
+                              type="text"
+                              className="p-1 text-sm font-medium text-gray-100 bg-gray-800 border border-gray-300 focus:outline-indigo-500 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            />
+                          </td>
+                          <td className="hidden py-2 pl-0 pr-8 text-sm leading-6 text-white md:table-cell md:pr-12 sm:pr-20">
                             <div className="flex items-start justify-start">
-                              {design.designStatus ===
-                                "AwaitingLocation" ? (
-                                <button
-                                  type="button"
-                                  className="inline-flex items-center justify-start gap-x-2 rounded-md bg-sky-900 px-3 py-2 text-md font-mono text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
-                                  onClick={() => {
-                                    addDesignToLocation(design.designNumber);
-                                    updateScreenDetails(design._id, "InLocation");
-                                    updateScreensStatus(design.designNumber, "InLocation");
-                                    setIsUpdating(true);
-                                  }}
-                                >
-                                  Pending
-                                  <ClockIcon
-                                    className="-ml-0.5 h-5 w-5 text-green-500"
-                                    aria-hidden="true"
-                                  />
-                                </button>
-                              ) : (
-                                <button
-                                  type="button"
-                                  className="inline-flex items-center justify-start gap-x-2 rounded-md bg-gray-700 px-3 py-2 text-md font-mono text-white shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
-                                  onClick={() => {
-                                    updateScreenDetails(design._id, "AwaitingLocation");
-                                    updateScreensStatus(design.designNumber, "AwaitingLocation");
-                                    setIsUpdating(true);
-                                  }}
-                                >
-                                  Location Added
-                                  <CheckIcon
-                                    className="-ml-0.5 h-5 w-5 text-green-500"
-                                    aria-hidden="true"
-                                  />
-                                </button>
-                              )}
+                              <button
+                                onClick={() => updateEndringRemovedLocation(design.designNumber, design._id)}
+                                type="button"
+                                className="inline-flex items-center justify-start gap-x-2 rounded-md bg-sky-900 px-3 py-2 text-md font-mono text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+                              >
+                                Box Location
+                                <ClockIcon
+                                  className="-ml-0.5 h-5 w-5 text-green-500"
+                                  aria-hidden="true"
+                                />
+                              </button>
                             </div>
                           </td>
                         </tr>
@@ -652,4 +610,4 @@ function AddLocations() {
   );
 }
 
-export default AddLocations;
+export default EndringRemoving;

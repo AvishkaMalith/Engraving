@@ -14,7 +14,7 @@ const DaysDifference = ({ givenDate }) => {
     }
   }, [givenDate]);
 
-  return <>{daysDifference}</>;
+  return daysDifference;
 };
 
 export default DaysDifference;

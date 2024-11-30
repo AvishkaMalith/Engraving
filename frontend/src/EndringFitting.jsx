@@ -8,7 +8,7 @@ import {
 } from "@heroicons/react/24/outline";
 
 import { MdPalette, MdRemoveCircleOutline, MdAddCircleOutline } from "react-icons/md";
-import { FaTools } from "react-icons/fa";
+import { FaBoxes, FaTools } from "react-icons/fa";
 import { FiTool, FiSettings } from "react-icons/fi";
 import { FaUsers, FaDatabase } from "react-icons/fa";
 import { HiDocumentText } from "react-icons/hi";
@@ -18,7 +18,10 @@ import {
   MagnifyingGlassIcon,
   ClockIcon,
 } from "@heroicons/react/20/solid";
+
+// Importing Required packages and libraries
 import axios from "axios";
+import { format } from "date-fns";
 
 const teams = [
   { id: 1, name: "Planetaria", href: "#", initial: "P", current: false },
@@ -39,13 +42,15 @@ function EndringFitting() {
 
   const navigate = useNavigate();
 
+  // Defining navigation names, icons and their routes in the application
   const navigation = [
     { name: "Designs", icon: MdPalette, current: false, route: "/" },
     { name: "Endring Fitting", icon: FiTool, current: true, route: "/EndringFitting" },
     { name: "Add Locations", icon: MdAddCircleOutline, current: false, route: "/AddLocations" },
     { name: "Screen Locations", icon: FaDatabase, current: false, route: "/ScreenLocations" },
-    { name: "Remove Locations", icon: MdRemoveCircleOutline, current: false, route: "/" },
-    { name: "Endring Removing", icon: FaTools, current: false, route: "/" },
+    { name: "Remove Locations", icon: MdRemoveCircleOutline, current: false, route: "/RemoveLocations" },
+    { name: "Endring Removing", icon: FaTools, current: false, route: "/EndringRemoving" },
+    { name: "Endring Removed", icon: FaBoxes, current: false, route: "/EndringRemoved" },
     { name: "Design Details", icon: HiDocumentText, current: false, route: "/" },
     { name: "Employees", icon: FaUsers, current: false, route: "/" },
     { name: "Settings", icon: FiSettings, current: false, route: "/" },
@@ -76,7 +81,7 @@ function EndringFitting() {
           `http://localhost:4000/api/designs/search?`,
           {
             params: {
-              designStatus: ["BeingEngraved", "EngravingCompleted"]
+              designStatus: ["BeingEngraved", "EngravingCompleted", "AwaitingEndringFitting"]
             },
           }
         );
@@ -507,7 +512,7 @@ function EndringFitting() {
                             <div className="flex gap-x-3">
                               <div className="font-mono text-lg leading-6 text-white">
                                 <p className="truncate text-md font-mono leading-6 text-white">
-                                  {screen.completedDate}
+                                  {format(screen.completedDate, "PP")}
                                 </p>
                               </div>
                             </div>
@@ -525,7 +530,7 @@ function EndringFitting() {
                             <div className="flex items-center justify-end gap-x-2 sm:justify-start">
                               <div className="font-mono text-lg leading-6 text-white">
                                 <p className="truncate text-md font-mono leading-6 text-white">
-                                  {screen.screenWidth + " mm"}
+                                  {screen.screenWidth}
                                 </p>
                               </div>
                             </div>
@@ -535,7 +540,6 @@ function EndringFitting() {
                               <select
                                 onChange={(event) => {
                                   const newValue = event.target.value;
-
                                   setUpdatedScreen((prevDetails) => ({
                                     ...prevDetails,
                                     endringFittedByValue: newValue,
@@ -579,24 +583,20 @@ function EndringFitting() {
                                       aria-hidden="true"
                                     />
                                   </button>
-                                )
-                                  :
+                                ) : (
                                   screen.exposedType === "Use" ? "" :
                                     <button
                                       type="button"
                                       className="inline-flex items-center justify-start gap-x-2 rounded-md bg-green-600 px-3 py-2 text-md font-mono text-white shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
-                                      onClick={() => {
-                                        updateEndringFittedByAndScreenStatus(designId, screen._id, "AwaitingEndringFitting");
-                                        setCurrentDesignId(designId);
-                                        setIsUpdating(true);
-                                      }}
+                                      disabled
                                     >
-                                      Endring
+                                      Fitted
                                       <CheckIcon
                                         className="-ml-0.5 h-5 w-5 text-yellow-400"
                                         aria-hidden="true"
                                       />
                                     </button>
+                                )
                               )}
                             </div>
                           </td>

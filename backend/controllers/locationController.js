@@ -58,7 +58,7 @@ const addToLocation = async (req, res) => {
   try {
     // Getting the location Object Id and the designNumber
     const locationObjectId = req.params.locationObjectId;
-    const designNumber = req.params.designNumber;
+    const designNumber = Number(req.params.designNumber);
 
     // Validating locationObjectId
     if (!mongoose.Types.ObjectId.isValid(locationObjectId)) {

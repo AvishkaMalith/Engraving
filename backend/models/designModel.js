@@ -16,7 +16,7 @@ const designSchema = new mongoose.Schema(
     printRoute: { type: String },
     designName: { type: String },
     customer: { type: String },
-    screenWidth: { type: Number },
+    screenWidth: { type: String },
     dpi: { type: Number },
     drop: { type: String },
     screens: [screenSchema],

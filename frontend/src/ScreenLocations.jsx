@@ -4,7 +4,7 @@ import { Dialog, Transition } from "@headlessui/react";
 import { XMarkIcon } from "@heroicons/react/24/outline";
 
 import { MdPalette, MdRemoveCircleOutline, MdAddCircleOutline } from "react-icons/md";
-import { FaTools } from "react-icons/fa";
+import { FaBoxes, FaTools } from "react-icons/fa";
 import { FiTool, FiSettings } from "react-icons/fi";
 import { FaUsers, FaDatabase } from "react-icons/fa";
 import { HiDocumentText } from "react-icons/hi";
@@ -13,7 +13,9 @@ import { Bars3Icon, MagnifyingGlassIcon } from "@heroicons/react/20/solid";
 
 import axios from "axios";
 
-import DaysDifference from "./CalculateDaysDifference";
+import { format } from "date-fns";
+
+import DaysDifference from "./DaysDifference";
 
 const teams = [
   { id: 1, name: "Planetaria", href: "#", initial: "P", current: false },
@@ -27,13 +29,15 @@ function classNames(...classes) {
 
 function ScreensLocation() {
 
+  // Defining navigation names, icons and their routes in the application
   const navigation = [
     { name: "Designs", icon: MdPalette, current: false, route: "/" },
     { name: "Endring Fitting", icon: FiTool, current: false, route: "/EndringFitting" },
     { name: "Add Locations", icon: MdAddCircleOutline, current: false, route: "/AddLocations" },
-    { name: "Screen Locations", icon: FaDatabase, current: true, route: "/ScreensLocation" },
-    { name: "Remove Locations", icon: MdRemoveCircleOutline, current: false, route: "/" },
-    { name: "Endring Removing", icon: FaTools, current: false, route: "/" },
+    { name: "Screen Locations", icon: FaDatabase, current: true, route: "/ScreenLocations" },
+    { name: "Remove Locations", icon: MdRemoveCircleOutline, current: false, route: "/RemoveLocations" },
+    { name: "Endring Removing", icon: FaTools, current: false, route: "/EndringRemoving" },
+    { name: "Endring Removed", icon: FaBoxes, current: false, route: "/EndringRemoved" },
     { name: "Design Details", icon: HiDocumentText, current: false, route: "/" },
     { name: "Employees", icon: FaUsers, current: false, route: "/" },
     { name: "Settings", icon: FiSettings, current: false, route: "/" },
@@ -51,9 +55,11 @@ function ScreensLocation() {
     isUpdating: false,
     updated: false,
     updatingLocationId: "",
+    currentLocationId: "",
+    newLocationId: "",
     updatingDesignId: "",
     updatingDesignNumber: 0,
-    updatedDesignStatusValue: "",
+    updatedDesignLocationValue: "",
     updatedLastPrintedDateValue: new Date().toISOString().split("T")[0]
   });
 
@@ -106,27 +112,41 @@ function ScreensLocation() {
     getDesigns();
     getLocations();
 
+    setUpdate((prevDetails) => ({
+      ...prevDetails,
+      updated: false
+    }))
+
   }, [update.updated]);
 
-  const removeDesignFromLocation = async (designId, designNumber, locationId) => {
+  const updateDesignLocation = async (designId, designNumber) => {
     try {
-      // Removing Design Number from the location
-      const removeLocation = await axios.patch(`http://localhost:4000/api/locations/removeFromLocation/${locationId}/${designNumber}`);
+      if (update.updatedDesignLocationValue) {
+        if (window.confirm(`Send ${designNumber} to ${update.updatedDesignLocationValue} ?`)) {
+          // Removing Design Number from the current location
+          const removeLocation = await axios.patch(`http://localhost:4000/api/locations/removeFromLocation/${update.updatingLocationId}/${designNumber}`);
 
-      // Updating the designStatus of design object as "AwaitingEndringRemoving"
-      const updateDesignStatus = await axios.patch(`http://localhost:4000/api/designs/${designId}`, {
-        location: "",
-        designStatus: "AwaitingEndringRemoving"
-      });
+          // Adding the design number to the new location
+          const addLocation = await axios.patch(`http://localhost:4000/api/locations/addToLocation/${update.newLocationId}/${designNumber}`);
 
-      setUpdate((prevDetails) => ({
-        ...prevDetails,
-        updated: prevDetails.updated
-      }));
+          // Updating the designStatus of design object as "AwaitingEndringRemoving"
+          const updateDesignStatus = await axios.patch(`http://localhost:4000/api/designs/${designId}`, {
+            location: update.updatedDesignLocationValue
+          });
+
+          setUpdate((prevDetails) => ({
+            ...prevDetails,
+            updatedDesignLocationValue: "",
+            updated: true,
+            currentLocationId: "",
+            newLocationId: ""
+          }));
+        }
+      }
     } catch (error) {
       console.error("Error updating design or locations", error);
     }
-  }
+  };
 
   const updateLastPrintedDate = async (designId) => {
     try {
@@ -397,15 +417,14 @@ function ScreensLocation() {
             {/* Activity list */}
             <div className="grid grid-cols-1 bg-gray-900 sm:grid-cols-1 lg:grid-cols-2">
               {locations && locations.map((location) => (
-                <div className="border-y border-white/10 bg-gray-900">
+                <div key={location._id} className="border-y border-white/10 bg-gray-900">
                   <div className="bg-gray-900 p-4">
                     <div className="mx-auto max-w-full">
-                      <div key={location._id}
-                        className={`
+                      <div className={`
                           ${designs
-                            .filter((design) => design.location === location.locationName)
-                            .reduce((numberOfStoredScreens, design) => design.numberOfExposedScreens + numberOfStoredScreens, 0) < location.locationCapacity ?
-                            (`bg-indigo-800`) : (`bg-green-800`)} py-2 my-2 rounded-md`}>
+                          .filter((design) => design.location === location.locationName)
+                          .reduce((numberOfStoredScreens, design) => design.numberOfExposedScreens + numberOfStoredScreens, 0) < location.locationCapacity ?
+                          (`bg-indigo-800`) : (`bg-green-800`)} py-2 my-2 rounded-md`}>
                         <div className="px-2 sm:px-6 lg:px-4">
                           <div className="sm:flex sm:items-center">
                             <div className="sm:flex-auto">
@@ -460,7 +479,7 @@ function ScreensLocation() {
                                         Design #
                                       </th>
                                       <th scope="col" className="px-2 py-2 text-left text-md font-semibold text-yellow-500">
-                                        {update.isUpdating && update.updatingLocationId === location._id ? "Remove" : "Screens #"}
+                                        {update.isUpdating && update.updatingLocationId === location._id ? "Location" : "Screens #"}
                                       </th>
                                       <th scope="col" className="px-2 py-2 text-left text-md font-semibold text-yellow-500">
                                         Last Print
@@ -477,20 +496,32 @@ function ScreensLocation() {
                                           {design.designNumber + " / " + design.numberOfColors}
                                         </td>
                                         <td>
-                                          {update.isUpdating && update.updatingLocationId === location._id ?
-                                            (
-                                              <button
-                                                onClick={() => {
-                                                  removeDesignFromLocation(design._id, design.designNumber, location._id);
-                                                }}
-                                                className="inline-flex items-center bg-red-900 border border-red-400 rounded hover:bg-red-800 px-3 py-1 text-sm font-medium ring-1 ring-inset text-white ring-red-500/20">
-                                                Remove
-                                              </button>
-                                            ) : (
-                                              <p className="whitespace-nowrap px-2 py-2 font-medium text-md text-gray-100">
-                                                {design.numberOfExposedScreens}
-                                              </p>
-                                            )}
+                                          {update.isUpdating && update.updatingLocationId === location._id ? (
+                                            <select
+                                              onChange={(event) => {
+                                                const newLocationName = event.target.value;
+                                                const newLocationId = locations.filter((location) => location.locationName === newLocationName).map((location) => location._id)[0];
+                                                setUpdate((prevDetails) => ({
+                                                  ...prevDetails,
+                                                  updatedDesignLocationValue: newLocationName,
+                                                  newLocationId: newLocationId
+                                                }))
+                                              }}
+                                              className="p-1 text-sm text-center font-medium text-gray-100 bg-gray-800 border border-gray-300 focus:outline-indigo-500 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                            >
+                                              <option value=""></option>
+                                              {locations &&
+                                                locations.map((location) => (
+                                                  <option key={location._id} value={location.locationName}>
+                                                    {location.locationName}
+                                                  </option>
+                                                ))}
+                                            </select>
+                                          ) : (
+                                            <p className="whitespace-nowrap px-2 py-2 font-medium text-md text-gray-100">
+                                              {design.numberOfExposedScreens}
+                                            </p>
+                                          )}
                                         </td>
                                         <td className="whitespace-nowrap px-2 py-2 font-medium text-md text-gray-100">
                                           {update.isUpdating && update.updatingLocationId === location._id ?
@@ -504,11 +535,11 @@ function ScreensLocation() {
                                                 value={update.updatedLastPrintedDateValue}
                                                 type="date"
                                                 required
-                                                className="p-1 text-sm font-medium text-gray-100 bg-blue-900 border border-blue-300 focus:outline-indigo-500 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                className="p-1 text-sm text-center font-medium text-gray-100 bg-gray-800 border border-gray-300 focus:outline-indigo-500 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                                               />
                                             ) : (
                                               <p className="text-left">
-                                                {design.lastPrintedDate}
+                                                {format(design.lastPrintedDate, "PP")}
                                               </p>
                                             )}
                                         </td>
@@ -518,13 +549,14 @@ function ScreensLocation() {
                                               <button
                                                 onClick={() => {
                                                   updateLastPrintedDate(design._id);
+                                                  updateDesignLocation(design._id, design.designNumber);
                                                   setUpdate({
                                                     isUpdating: false,
                                                     updatingLocationId: "",
                                                   });
                                                 }}
                                                 className="inline-flex items-center bg-yellow-700 focus:outline-none rounded hover:bg-yellow-900 px-2 py-1 text-sm font-medium ring-1 ring-inset text-white ring-yellow-500">
-                                                Save Print Date
+                                                Save
                                               </button>
                                             ) : (
                                               <p>
